@@ -1,0 +1,1520 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GENESIS — L'Aube de l'Humanité</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#000; overflow:hidden; font-family:'Segoe UI',system-ui,sans-serif; color:#e8d5a0; user-select:none; }
+
+#canvas { position:fixed; inset:0; width:100vw; height:100vh; display:block; }
+
+/* Loading */
+#loading {
+  position:fixed; inset:0; z-index:9999;
+  background:radial-gradient(ellipse at center, #080812 0%, #000 100%);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px;
+  transition:opacity 1.5s;
+}
+#loading h1 {
+  font-size:clamp(28px,5vw,58px); font-weight:100; letter-spacing:16px; color:#c8a060;
+  text-shadow:0 0 60px rgba(200,160,96,0.7);
+  animation:glow 3s ease-in-out infinite;
+}
+#loading p { font-size:11px; letter-spacing:5px; color:rgba(200,160,96,0.4); animation:pulse 1.5s infinite; }
+#load-msg  { font-size:10px; letter-spacing:3px; color:rgba(200,160,96,0.25); margin-top:4px; }
+@keyframes glow  { 0%,100%{text-shadow:0 0 40px rgba(200,160,96,0.4);}50%{text-shadow:0 0 100px rgba(200,160,96,0.9);} }
+@keyframes pulse { 0%,100%{opacity:0.4;}50%{opacity:1;} }
+
+/* Top bar */
+#topbar {
+  position:fixed; top:0; left:0; right:0; z-index:100;
+  display:flex; align-items:center; gap:14px; padding:8px 14px;
+  background:linear-gradient(180deg,rgba(0,0,0,0.75) 0%,transparent 100%);
+  pointer-events:none;
+}
+#hud-time  { font-size:15px; color:#f0d080; letter-spacing:2px; }
+#hud-date  { font-size:11px; color:rgba(240,208,128,0.55); letter-spacing:2px; }
+.sep       { color:rgba(255,255,255,0.15); }
+#hud-pop   { font-size:12px; color:#a0d0a0; }
+#hud-animals { font-size:12px; color:rgba(255,255,255,0.4); }
+#hud-speed { font-size:11px; color:rgba(200,200,200,0.5); margin-left:auto; cursor:pointer; pointer-events:all; }
+#hud-cam   { font-size:11px; color:rgba(200,200,200,0.4); }
+
+/* Human panels */
+.hpanel {
+  position:fixed; bottom:14px; width:224px;
+  background:rgba(5,5,10,0.72); backdrop-filter:blur(10px);
+  border:1px solid rgba(200,160,80,0.18); border-radius:8px;
+  padding:12px 13px; pointer-events:all;
+}
+#p-adam { left:14px; }
+#p-eve  { left:246px; }
+.pname {
+  font-size:12px; font-weight:600; letter-spacing:3px; color:#f0c060;
+  display:flex; justify-content:space-between; align-items:center; margin-bottom:9px;
+}
+.page  { font-size:10px; color:rgba(240,192,96,0.5); font-weight:400; letter-spacing:1px; }
+.nrow  { display:flex; align-items:center; gap:5px; margin-bottom:3px; }
+.nicon { width:14px; font-size:12px; text-align:center; }
+.nbg   { flex:1; height:5px; background:rgba(255,255,255,0.07); border-radius:3px; overflow:hidden; }
+.nbar  { height:100%; border-radius:3px; transition:width .6s,background .6s; }
+.pstate  { font-size:10px; color:rgba(220,200,160,0.8); margin-top:6px; }
+.pskills { font-size:9px;  color:rgba(140,200,220,0.65); margin-top:2px; }
+.pinv    { font-size:10px; color:rgba(190,220,150,0.7);  margin-top:2px; }
+.pbadge  { display:inline-block; font-size:8px; padding:1px 5px; border-radius:2px;
+           background:rgba(240,60,60,0.2); color:#ff8080; border:1px solid rgba(240,60,60,0.3); }
+
+/* Divine panel */
+#divine {
+  position:fixed; right:14px; top:50%; transform:translateY(-50%);
+  background:rgba(5,5,10,0.72); backdrop-filter:blur(10px);
+  border:1px solid rgba(200,160,80,0.18); border-radius:8px;
+  padding:14px 12px; width:175px;
+}
+#divine h3 { font-size:9px; letter-spacing:3px; color:rgba(240,192,96,0.5); text-align:center; margin-bottom:10px; }
+.ebar  { display:flex; align-items:center; gap:7px; margin-bottom:11px; }
+.ebg   { flex:1; height:5px; background:rgba(255,255,255,0.07); border-radius:3px; overflow:hidden; }
+#efill { height:100%; background:linear-gradient(90deg,#c88020,#f0c060); border-radius:3px; transition:width 1s; }
+#eval  { font-size:11px; color:#f0c060; width:22px; text-align:right; }
+.dbtn  {
+  display:block; width:100%; margin-bottom:5px; padding:6px 8px;
+  background:rgba(240,192,96,0.07); border:1px solid rgba(240,192,96,0.18);
+  border-radius:4px; color:rgba(240,192,96,0.75); font-size:9px;
+  letter-spacing:1px; cursor:pointer; text-align:left; transition:all .15s;
+}
+.dbtn:hover { background:rgba(240,192,96,0.16); border-color:rgba(240,192,96,0.45); }
+.dbtn span  { float:right; color:rgba(240,192,96,0.35); font-size:8px; }
+
+/* Camera buttons */
+#cams {
+  position:fixed; right:14px; bottom:14px;
+  display:flex; gap:5px; flex-wrap:wrap; width:175px;
+}
+.cbtn {
+  padding:5px 9px; font-size:9px; letter-spacing:1px; cursor:pointer;
+  background:rgba(0,0,0,0.6); backdrop-filter:blur(4px);
+  border:1px solid rgba(200,200,200,0.12); border-radius:4px;
+  color:rgba(200,200,200,0.55); transition:all .15s;
+}
+.cbtn:hover,.cbtn.on { background:rgba(240,192,96,0.14); border-color:rgba(240,192,96,0.4); color:#f0c060; }
+
+/* Log */
+#log {
+  position:fixed; left:14px; top:52px; width:310px;
+  pointer-events:none; max-height:200px; overflow:hidden;
+}
+.lline {
+  font-size:11px; line-height:1.5; padding-left:6px;
+  border-left:2px solid currentColor; margin-bottom:2px;
+  text-shadow:0 1px 3px rgba(0,0,0,0.9);
+}
+
+/* Tooltip */
+#tip {
+  position:fixed; display:none; pointer-events:none;
+  background:rgba(0,0,0,0.85); backdrop-filter:blur(6px);
+  border:1px solid rgba(200,160,80,0.3); border-radius:6px;
+  padding:8px 12px; font-size:11px; line-height:1.7; max-width:200px;
+  z-index:500;
+}
+/* Keys hint */
+#keys {
+  position:fixed; bottom:260px; left:14px; pointer-events:none;
+  font-size:9px; letter-spacing:1px; color:rgba(200,200,200,0.25); line-height:2;
+}
+
+::-webkit-scrollbar { width:3px; }
+::-webkit-scrollbar-thumb { background:rgba(200,160,80,0.3); border-radius:2px; }
+</style>
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+
+<div id="loading">
+  <h1>GENESIS</h1>
+  <p>L'AUBE DE L'HUMANITÉ</p>
+  <div id="load-msg">Initialisation…</div>
+</div>
+
+<div id="topbar">
+  <div id="hud-time">6:00</div>
+  <div id="hud-date">Jour 0 · An 0 · Printemps</div>
+  <span class="sep">|</span>
+  <div id="hud-pop">👥 2</div>
+  <div id="hud-animals"></div>
+  <div id="hud-speed" title="Cliquer pour changer la vitesse">▶ ×1</div>
+  <div id="hud-cam">📷 Suivi</div>
+</div>
+
+<div id="log"></div>
+
+<div class="hpanel" id="p-adam">
+  <div class="pname">ADAM <span class="page" id="adam-age">20 ans</span></div>
+  <div class="nrow"><span class="nicon">🍖</span><div class="nbg"><div class="nbar" id="adam-hunger" style="width:70%;background:#e8a840"></div></div></div>
+  <div class="nrow"><span class="nicon">💧</span><div class="nbg"><div class="nbar" id="adam-thirst" style="width:70%;background:#60b0e0"></div></div></div>
+  <div class="nrow"><span class="nicon">❤</span><div class="nbg"><div class="nbar"  id="adam-health" style="width:100%;background:#60c870"></div></div></div>
+  <div class="nrow"><span class="nicon">⚡</span><div class="nbg"><div class="nbar" id="adam-energy" style="width:80%;background:#a060e0"></div></div></div>
+  <div class="nrow"><span class="nicon">🌡</span><div class="nbg"><div class="nbar" id="adam-warmth" style="width:100%;background:#f06030"></div></div></div>
+  <div class="pstate" id="adam-state">🚶 Explore</div>
+  <div class="pskills" id="adam-skills">—</div>
+  <div class="pinv" id="adam-inv">—</div>
+</div>
+
+<div class="hpanel" id="p-eve">
+  <div class="pname">ÈVE <span class="page" id="eve-age">18 ans</span></div>
+  <div class="nrow"><span class="nicon">🍖</span><div class="nbg"><div class="nbar" id="eve-hunger" style="width:70%;background:#e8a840"></div></div></div>
+  <div class="nrow"><span class="nicon">💧</span><div class="nbg"><div class="nbar" id="eve-thirst" style="width:70%;background:#60b0e0"></div></div></div>
+  <div class="nrow"><span class="nicon">❤</span><div class="nbg"><div class="nbar"  id="eve-health" style="width:100%;background:#60c870"></div></div></div>
+  <div class="nrow"><span class="nicon">⚡</span><div class="nbg"><div class="nbar" id="eve-energy" style="width:80%;background:#a060e0"></div></div></div>
+  <div class="nrow"><span class="nicon">🌡</span><div class="nbg"><div class="nbar" id="eve-warmth" style="width:100%;background:#f06030"></div></div></div>
+  <div class="pstate" id="eve-state">🌿 Cueille</div>
+  <div class="pskills" id="eve-skills">—</div>
+  <div class="pinv" id="eve-inv">—</div>
+</div>
+
+<div id="divine">
+  <h3>✦ INFLUENCE DIVINE</h3>
+  <div class="ebar"><div class="ebg"><div id="efill" style="width:50%"></div></div><div id="eval">50</div></div>
+  <button class="dbtn" onclick="G.divine('weather')">🌤 Changer météo <span>-10</span></button>
+  <button class="dbtn" onclick="G.divine('attract')">🦌 Attirer un animal <span>-5</span></button>
+  <button class="dbtn" onclick="G.divine('repel')">🛡 Éloigner dangers <span>-8</span></button>
+  <button class="dbtn" onclick="G.divine('heal')">💚 Soigner humains <span>-20</span></button>
+  <button class="dbtn" onclick="G.divine('dream')">💫 Envoyer une vision <span>-15</span></button>
+  <button class="dbtn" onclick="G.divine('food')">🌿 Faire apparaître nourriture <span>-12</span></button>
+</div>
+
+<div id="cams">
+  <button class="cbtn on"  id="c-follow"  onclick="G.cam('follow')">👁 Suivi</button>
+  <button class="cbtn"     id="c-free"    onclick="G.cam('free')">🎮 Libre</button>
+  <button class="cbtn"     id="c-god"     onclick="G.cam('god')">🌍 Dieu</button>
+  <button class="cbtn"     id="c-inspect" onclick="G.cam('inspect')">🔍 Inspect</button>
+  <button class="cbtn"     onclick="G.focusHuman('Adam')">A</button>
+  <button class="cbtn"     onclick="G.focusHuman('Ève')">V</button>
+</div>
+
+<div id="keys">
+  [1-4] Modes caméra &nbsp;|&nbsp; [A/V] Adam·Ève<br>
+  [Espace] Pause &nbsp;|&nbsp; [+/-] Vitesse<br>
+  Clic droit · Orbiter &nbsp;|&nbsp; Molette · Zoom<br>
+  Clic entité · Inspecter
+</div>
+
+<div id="tip"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+'use strict';
+// ════════════════════════════════════════════════════════════════════════
+//  GENESIS — L'Aube de l'Humanité
+//  Tout en un seul fichier pour garantir l'ordre de chargement.
+//  Structure :  CONFIG → STATE → CLOCK → NOISE → TERRAIN → SPECIES
+//            →  ANIMAL → HUMAN → ECOSYSTEM → SCENE → CAMERA
+//            →  MESHES → VEG → HUD → DIVINE → APP
+// ════════════════════════════════════════════════════════════════════════
+
+// ── CONFIG ────────────────────────────────────────────────────────────
+const CFG = {
+  WORLD: 2000, SEGS: 200, WATER: 0,
+  DAY_MS: 80000,   // 80s réels = 1 jour simulé
+  MAX_HEIGHT: 160,
+  ADAM: {x:0,z:0}, EVE: {x:5,z:3},
+  SPEED_INIT: 1,
+  ANIMALS: { deer:16, wolf:5, rabbit:28, mammoth:4, bison:10, bear:4, boar:10, eagle:8, sabre:2, fish:30 },
+  MAX_ANIMALS: 180,
+  RESPAWN_RATE: 0.015,
+  DIVINE_MAX: 100, DIVINE_REGEN: 2,
+  DIVINE_COSTS: { weather:10, attract:5, repel:8, heal:20, dream:15, food:12 },
+  SHADOW_SIZE: 1024,
+};
+
+// ── STATE ─────────────────────────────────────────────────────────────
+const S = {
+  hour:6, day:0, year:0, season:'spring',
+  weather:'clear', temp:20,
+  humans:[], animals:[],
+  divineEnergy:50,
+  paused:false, speed:1,
+  camMode:'follow', camTarget:null, camFocus:'adam',
+  population:2, generation:1,
+  totalBirths:2, totalDeaths:0,
+  logs:[],
+};
+
+// ── LOGGER ────────────────────────────────────────────────────────────
+const LOG_COLORS = {
+  discovery:'#f0c060', human:'#e8d5a0', danger:'#ff7070',
+  death:'#808090',     birth:'#80c870', world:'#90b8c0', ui:'#7090a0'
+};
+
+function log(text, type='world') {
+  S.logs.unshift({ text, type });
+  if (S.logs.length > 60) S.logs.length = 60;
+  const el = document.getElementById('log');
+  if (!el) return;
+  el.innerHTML = S.logs.slice(0,16).map(l =>
+    `<div class="lline" style="color:${LOG_COLORS[l.type]||'#aaa'}">${l.text}</div>`
+  ).join('');
+}
+
+// ── CLOCK ─────────────────────────────────────────────────────────────
+const SEASON_TEMP = {spring:15,summer:28,autumn:10,winter:-4};
+const SEASONS = ['spring','summer','autumn','winter'];
+const SEASON_NAMES = {spring:'🌱 Printemps',summer:'☀ Été',autumn:'🍂 Automne',winter:'❄ Hiver'};
+
+function clockTick(realMs) {
+  if (S.paused) return 0;
+  const simSec = (realMs / 1000) * S.speed * (86400 / (CFG.DAY_MS / 1000));
+  S.hour += simSec / 3600;
+  let dayChange = false;
+  while (S.hour >= 24) {
+    S.hour -= 24; S.day++; dayChange = true;
+    if (S.day >= 365) { S.day = 0; S.year++; }
+    const si = Math.floor((S.day / 365) * 4) % 4;
+    const ns = SEASONS[si];
+    if (ns !== S.season) {
+      S.season = ns;
+      S.temp = SEASON_TEMP[ns] + (Math.random()-0.5)*5;
+      log(`Nouvelle saison : ${SEASON_NAMES[ns]}`, 'world');
+    }
+    if (S.day % 8 === 0) _updateWeather();
+  }
+  return simSec;
+}
+
+function _updateWeather() {
+  const T = { clear:{clear:.65,cloudy:.25,rain:.08,storm:.02},
+              cloudy:{clear:.3,cloudy:.35,rain:.25,storm:.1},
+              rain:{clear:.15,cloudy:.3,rain:.35,storm:.2},
+              storm:{clear:.15,cloudy:.25,rain:.35,storm:.25} };
+  const cur = T[S.weather] || T.clear;
+  let r = Math.random(), tot = 0;
+  for (const [k,v] of Object.entries(cur)) { tot+=v; if(r<tot){if(k!==S.weather){S.weather=k;log(`Météo : ${k}`, 'world');}break;} }
+}
+
+function isNight() { return S.hour < 6 || S.hour > 20; }
+function sunInt()  {
+  const h = S.hour;
+  if (h<6||h>20) return 0.02;
+  if (h<8)  return (h-6)/2*0.8;
+  if (h>18) return (20-h)/2*0.8;
+  return 0.8+Math.sin((h-8)/10*Math.PI)*0.2;
+}
+function skyColors() {
+  const h = S.hour, w = S.weather;
+  if (w==='storm') return [0x1a1a2e,0x2a2a3e];
+  if (w==='rain')  return [0x4a5a6a,0x6a7a8a];
+  if (h<5||h>21)   return [0x020210,0x0a0820];
+  if (h<7)         return [0x1a1060,0xe07040];
+  if (h<9)         return [0x4070c0,0xf09060];
+  if (h>19)        return [0x2040a0,0xf06030];
+  if (S.season==='winter') return [0x6080b0,0xa0b8c8];
+  return [0x4080d0,0x80b8e0];
+}
+
+// ── NOISE ─────────────────────────────────────────────────────────────
+function buildPerm(seed) {
+  const p=[...Array(256).keys()]; let s=seed>>>0;
+  for(let i=255;i>0;i--){s=(Math.imul(s,1664525)+1013904223)>>>0;const j=s%(i+1);[p[i],p[j]]=[p[j],p[i]];}
+  return new Uint8Array([...p,...p]);
+}
+const PERM = buildPerm(42);
+function fade(t){return t*t*t*(t*(t*6-15)+10);}
+function lerp(a,b,t){return a+t*(b-a);}
+function grad(h,x,y){switch(h&3){case 0:return x+y;case 1:return-x+y;case 2:return x-y;default:return-x-y;}}
+function pnoise(x,y){
+  const X=Math.floor(x)&255,Y=Math.floor(y)&255;
+  x-=Math.floor(x);y-=Math.floor(y);
+  const u=fade(x),v=fade(y);
+  const a=PERM[X]+Y,aa=PERM[a],ab=PERM[a+1],b=PERM[X+1]+Y,ba=PERM[b],bb=PERM[b+1];
+  return lerp(lerp(grad(PERM[aa],x,y),grad(PERM[ba],x-1,y),u),lerp(grad(PERM[ab],x,y-1),grad(PERM[bb],x-1,y-1),u),v);
+}
+function fbm(x,y,oct=6){let v=0,a=.5,f=1,m=0;for(let i=0;i<oct;i++){v+=pnoise(x*f,y*f)*a;m+=a;a*=.5;f*=2.1;}return v/m;}
+function wfbm(x,y,oct=6){const qx=fbm(x,y,oct),qy=fbm(x+5.2,y+1.3,oct);return fbm(x+4*qx,y+4*qy,oct);}
+
+// ── TERRAIN ───────────────────────────────────────────────────────────
+const TERRAIN = {
+  heights:null, biomes:null, mesh:null, waterMesh:null,
+  BIOME_COL:{ocean:0x1a4a8a,beach:0xd4b896,prairie:0x5a8a3a,steppe:0xa8954a,forest:0x2d5a1e,hills:0x6a7a4a,mountain:0x7a6a5a,peak:0xe8e8f0},
+};
+
+function biomeOf(h,hum) {
+  if(h<.25)return'ocean';if(h<.30)return'beach';
+  if(h<.55)return hum>.4?'prairie':'steppe';
+  if(h<.70)return hum>.6?'forest':'hills';
+  if(h<.88)return'mountain';return'peak';
+}
+
+function buildTerrain() {
+  const N=CFG.SEGS+1, sc=3/CFG.SEGS;
+  TERRAIN.heights=new Float32Array(N*N);
+  TERRAIN.biomes=new Array(N*N);
+  for(let r=0;r<N;r++)for(let c=0;c<N;c++){
+    const nx=c*sc,ny=r*sc;
+    let h=wfbm(nx,ny,7); h=(h+1)*.5;
+    const dx=(c/CFG.SEGS-.5)*2,dy=(r/CFG.SEGS-.5)*2;
+    h*=1-Math.max(0,Math.sqrt(dx*dx+dy*dy)-.25)*3.2;
+    h=Math.max(0,h);
+    const hum=(fbm(nx+10,ny+10,4)+1)*.5;
+    const i=r*N+c;
+    TERRAIN.heights[i]=h;
+    TERRAIN.biomes[i]=biomeOf(h,hum);
+  }
+}
+
+function getHeight(wx,wz){
+  const N=CFG.SEGS+1,half=CFG.WORLD/2;
+  const col=((wx+half)/CFG.WORLD)*CFG.SEGS,row=((wz+half)/CFG.WORLD)*CFG.SEGS;
+  const c0=Math.max(0,Math.min(CFG.SEGS-1,Math.floor(col))),r0=Math.max(0,Math.min(CFG.SEGS-1,Math.floor(row)));
+  const c1=Math.min(c0+1,CFG.SEGS),r1=Math.min(r0+1,CFG.SEGS);
+  const tf=col-c0,sf=row-r0;
+  const N_=CFG.SEGS+1;
+  return(TERRAIN.heights[r0*N_+c0]*(1-tf)*(1-sf)+TERRAIN.heights[r0*N_+c1]*tf*(1-sf)+
+         TERRAIN.heights[r1*N_+c0]*(1-tf)*sf+TERRAIN.heights[r1*N_+c1]*tf*sf)*CFG.MAX_HEIGHT;
+}
+
+function getBiome(wx,wz){
+  const N=CFG.SEGS+1,half=CFG.WORLD/2;
+  const col=Math.round(((wx+half)/CFG.WORLD)*CFG.SEGS),row=Math.round(((wz+half)/CFG.WORLD)*CFG.SEGS);
+  return TERRAIN.biomes[Math.max(0,Math.min(N*N-1,row*N+col))]||'prairie';
+}
+
+function randLandPos(minH=25,maxH=100){
+  for(let i=0;i<300;i++){
+    const wx=(Math.random()-.5)*CFG.WORLD*.75,wz=(Math.random()-.5)*CFG.WORLD*.75;
+    const h=getHeight(wx,wz);
+    if(h>=minH&&h<=maxH)return{x:wx,y:h,z:wz};
+  }
+  return{x:0,y:getHeight(0,0),z:0};
+}
+
+function buildTerrainMesh(scene) {
+  const N=CFG.SEGS+1;
+  const geo=new THREE.PlaneGeometry(CFG.WORLD,CFG.WORLD,CFG.SEGS,CFG.SEGS);
+  geo.rotateX(-Math.PI/2);
+  const pos=geo.attributes.position,colors=new Float32Array(pos.count*3),tmp=new THREE.Color();
+  for(let i=0;i<pos.count;i++){
+    const h=TERRAIN.heights[i]; pos.setY(i,h*CFG.MAX_HEIGHT);
+    tmp.setHex(TERRAIN.BIOME_COL[TERRAIN.biomes[i]]||0x5a8a3a);
+    const v=.84+h*.3+(Math.random()-.5)*.07;
+    colors[i*3]=tmp.r*v;colors[i*3+1]=tmp.g*v;colors[i*3+2]=tmp.b*v;
+  }
+  geo.setAttribute('color',new THREE.BufferAttribute(colors,3));
+  geo.computeVertexNormals();
+  TERRAIN.mesh=new THREE.Mesh(geo,new THREE.MeshLambertMaterial({vertexColors:true}));
+  TERRAIN.mesh.receiveShadow=true; TERRAIN.mesh.name='terrain';
+  scene.add(TERRAIN.mesh);
+
+  const wg=new THREE.PlaneGeometry(CFG.WORLD,CFG.WORLD,1,1); wg.rotateX(-Math.PI/2);
+  TERRAIN.waterMesh=new THREE.Mesh(wg,new THREE.MeshPhongMaterial({color:0x1a5a9a,transparent:true,opacity:.75,shininess:100}));
+  TERRAIN.waterMesh.position.y=CFG.WATER+.3; TERRAIN.waterMesh.name='water';
+  scene.add(TERRAIN.waterMesh);
+}
+
+// ── VEGETATION ────────────────────────────────────────────────────────
+function buildVegetation(scene) {
+  // Arbres
+  const trunkG=new THREE.CylinderGeometry(.2,.35,2.5,6);
+  const trunkM=new THREE.MeshLambertMaterial({color:0x4a2e10});
+  const coneG =new THREE.ConeGeometry(2.8,4.5,7);
+  const coneM =new THREE.MeshLambertMaterial({color:0x1a4a10});
+  const cone2G=new THREE.ConeGeometry(2.0,3.5,7);
+  const treCount=3000;
+  const TI=new THREE.InstancedMesh(trunkG,trunkM,treCount);
+  const CI=new THREE.InstancedMesh(coneG,coneM,treCount);
+  const C2=new THREE.InstancedMesh(cone2G,coneM,treCount);
+  TI.castShadow=CI.castShadow=C2.castShadow=true;
+  const d=new THREE.Object3D(); let p=0;
+  for(let i=0;i<treCount*5&&p<treCount;i++){
+    const wx=(Math.random()-.5)*CFG.WORLD*.9,wz=(Math.random()-.5)*CFG.WORLD*.9;
+    const h=getHeight(wx,wz); if(h<8||h>130)continue;
+    const bio=getBiome(wx,wz); if(bio==='ocean'||bio==='beach')continue;
+    const dens=bio==='forest'?.9:bio==='hills'?.35:.12; if(Math.random()>dens)continue;
+    const sc=.7+Math.random()*.7,ry=Math.random()*Math.PI*2;
+    d.position.set(wx,h+1.25*sc,wz);d.rotation.y=ry;d.scale.setScalar(sc);d.updateMatrix();TI.setMatrixAt(p,d.matrix);
+    d.position.set(wx,h+3.5*sc,wz);d.updateMatrix();CI.setMatrixAt(p,d.matrix);
+    d.position.set(wx,h+5.5*sc,wz);d.updateMatrix();C2.setMatrixAt(p,d.matrix);
+    p++;
+  }
+  TI.instanceMatrix.needsUpdate=CI.instanceMatrix.needsUpdate=C2.instanceMatrix.needsUpdate=true;
+  scene.add(TI,CI,C2);
+
+  // Buissons
+  const busG=new THREE.SphereGeometry(.6,6,4);
+  const busM=new THREE.MeshLambertMaterial({color:0x2a5a18});
+  const busI=new THREE.InstancedMesh(busG,busM,1500); busI.castShadow=true;
+  p=0;
+  for(let i=0;i<1500*4&&p<1500;i++){
+    const wx=(Math.random()-.5)*CFG.WORLD*.88,wz=(Math.random()-.5)*CFG.WORLD*.88;
+    const h=getHeight(wx,wz);if(h<5||h>100)continue;
+    if(getBiome(wx,wz)==='ocean')continue;
+    if(Math.random()>.4)continue;
+    const sc=.5+Math.random()*.8;
+    d.position.set(wx,h+.4*sc,wz);d.scale.setScalar(sc);d.rotation.y=Math.random()*Math.PI*2;d.updateMatrix();
+    busI.setMatrixAt(p++,d.matrix);
+  }
+  busI.instanceMatrix.needsUpdate=true;
+  scene.add(busI);
+
+  // Rochers
+  const rockG=new THREE.DodecahedronGeometry(1,0);
+  const rockM=new THREE.MeshLambertMaterial({color:0x808070});
+  const rockI=new THREE.InstancedMesh(rockG,rockM,600);rockI.castShadow=true;
+  p=0;
+  for(let i=0;i<600*6&&p<600;i++){
+    const wx=(Math.random()-.5)*CFG.WORLD*.92,wz=(Math.random()-.5)*CFG.WORLD*.92;
+    const h=getHeight(wx,wz);const bio=getBiome(wx,wz);
+    if(h<5||bio==='ocean')continue;
+    const dens=bio==='mountain'?.5:.07;if(Math.random()>dens)continue;
+    const sc=.3+Math.random()*(bio==='mountain'?2.5:.8);
+    d.position.set(wx,h+sc*.35,wz);d.scale.set(sc,sc*.7,sc*.9);
+    d.rotation.set(Math.random()*.5,Math.random()*Math.PI*2,Math.random()*.3);d.updateMatrix();
+    rockI.setMatrixAt(p++,d.matrix);
+  }
+  rockI.instanceMatrix.needsUpdate=true;
+  scene.add(rockI);
+
+  // Fleurs
+  const flG=new THREE.SphereGeometry(.1,4,3);
+  const flColors=[0xff6688,0xffcc44,0xffffff,0xff8844,0xcc44ff];
+  flColors.forEach(col=>{
+    const fm=new THREE.MeshLambertMaterial({color:col});
+    const fi=new THREE.InstancedMesh(flG,fm,100);
+    let fp=0;
+    for(let i=0;i<400&&fp<100;i++){
+      const wx=(Math.random()-.5)*CFG.WORLD*.7,wz=(Math.random()-.5)*CFG.WORLD*.7;
+      const h=getHeight(wx,wz);const bio=getBiome(wx,wz);
+      if(h<5||bio==='ocean'||bio==='mountain')continue;
+      if(Math.random()>.3)continue;
+      d.position.set(wx,h+.15,wz);d.scale.setScalar(1);d.rotation.y=0;d.updateMatrix();
+      fi.setMatrixAt(fp++,d.matrix);
+    }
+    fi.instanceMatrix.needsUpdate=true;
+    scene.add(fi);
+  });
+}
+
+// ── SPECIES ───────────────────────────────────────────────────────────
+const SP = {
+  deer:    {name:'Cerf',     cat:'prey',    hp:60, spd:8, walk:1.5, vis:35, sm:40, hpM:100, tpM:100, hr:.6, tr:.8, rep:.004, gest:230, life:4380, prey:['grass'],   pred:['wolf','sabre','bear','human'], flee:20, social:'herd', col:0xc8904a, sz:1.3, food:25},
+  wolf:    {name:'Loup',     cat:'pred',    hp:70, spd:10,walk:1.8, vis:45, sm:100,hpM:100, tpM:80,  hr:.7, tr:.5, rep:.003, gest:63,  life:4380, prey:['deer','rabbit','boar','bison'], pred:['sabre','human'], flee:5,  social:'pack', col:0x707060, sz:.8, food:0, danger:true},
+  rabbit:  {name:'Lapin',    cat:'prey',    hp:8,  spd:9, walk:.8,  vis:20, sm:25, hpM:40,  tpM:40,  hr:.3, tr:.4, rep:.02,  gest:30,  life:1825, prey:['grass'],   pred:['wolf','eagle','bear','sabre','human'], flee:15, social:'pair', col:0xc8b890, sz:.3, food:5},
+  mammoth: {name:'Mammouth', cat:'mega',    hp:400,spd:7, walk:1.0, vis:25, sm:70, hpM:200, tpM:200, hr:1.5,tr:1.2,rep:.001, gest:660, life:21900,prey:['grass'],   pred:['sabre','human'], flee:10, social:'herd', col:0x7a5a3a, sz:3.5, food:200, dangerous:true},
+  bison:   {name:'Bison',    cat:'prey',    hp:150,spd:9, walk:1.2, vis:30, sm:50, hpM:120, tpM:120, hr:.9, tr:1.0,rep:.003, gest:285, life:7300, prey:['grass'],   pred:['wolf','sabre','human'], flee:15, social:'herd', col:0x5a3a20, sz:1.8, food:80},
+  bear:    {name:'Ours',     cat:'omni',    hp:250,spd:8, walk:1.2, vis:30, sm:90, hpM:160, tpM:120, hr:1.0,tr:.7, rep:.002, gest:210, life:9125, prey:['deer','rabbit','fish','bison'], pred:['human'], flee:3, social:'solo', col:0x5a3a20, sz:1.8, food:0, danger:true},
+  boar:    {name:'Sanglier', cat:'omni',    hp:90, spd:8, walk:1.3, vis:20, sm:80, hpM:100, tpM:80,  hr:.7, tr:.6, rep:.005, gest:115, life:3650, prey:['roots'],   pred:['wolf','sabre','bear','human'], flee:8, social:'sounder', col:0x6a4a2a, sz:.9, food:30, dangerous:true},
+  eagle:   {name:'Aigle',    cat:'aerial',  hp:25, spd:20,walk:.2,  vis:200,sm:5,  hpM:60,  tpM:40,  hr:.4, tr:.3, rep:.003, gest:45,  life:10950,prey:['rabbit','fish'], pred:['human'], flee:30, social:'pair', col:0x8a6030, sz:.9, food:0},
+  sabre:   {name:'Smilodon', cat:'apex',    hp:200,spd:12,walk:1.5, vis:50, sm:80, hpM:150, tpM:100, hr:.5, tr:.4, rep:.001, gest:100, life:7300, prey:['mammoth','bison','deer','human'], pred:[], flee:2, social:'pair', col:0xa07040, sz:1.1, food:0, danger:true, vdanger:true},
+  fish:    {name:'Poisson',  cat:'aquatic', hp:5,  spd:3, walk:2,   vis:8,  sm:10, hpM:30,  tpM:999, hr:.2, tr:0,  rep:.015, gest:20,  life:1095, prey:['algae'],   pred:['eagle','bear','human'], flee:5, social:'school', col:0x4090c0, sz:.3, food:8, aquatic:true},
+};
+
+// ── ENTITY BASE ───────────────────────────────────────────────────────
+let _eid = 1;
+function eid() { return _eid++; }
+
+// ── ANIMAL ────────────────────────────────────────────────────────────
+class Animal {
+  constructor(key, x, y, z) {
+    const sp = SP[key]; if(!sp) throw new Error('Unknown species: '+key);
+    this.id=eid(); this.species=key; this.sp=sp; this.name=sp.name;
+    this.type='animal'; this.alive=true;
+    this.x=x; this.y=y; this.z=z; this.tx=x; this.tz=z;
+    this.rot=Math.random()*Math.PI*2;
+    this.hp=sp.hp; this.hunger=sp.hpM*.4+Math.random()*sp.hpM*.3;
+    this.thirst=sp.tpM*.4+Math.random()*sp.tpM*.3;
+    this.age=Math.random()*sp.life*.4; this.sex=Math.random()<.5?'M':'F';
+    this.pregnant=false; this.pregDays=0; this.repCool=0;
+    this.state='idle'; this.stTimer=0;
+    this.fleeTarget=null; this.huntTarget=null;
+    this.groupId=null; this.mesh=null; this._at=0;
+  }
+
+  tick(dt, all) {
+    if(!this.alive) return;
+    this.stTimer+=dt; this._at+=dt; this.age+=dt/86400;
+    if(this.age>=this.sp.life){this.die('age');return;}
+    this._needs(dt);
+    if(!this.alive) return;
+    if(this.repCool>0) this.repCool-=dt/86400;
+    if(this.pregnant){this.pregDays+=dt/86400;if(this.pregDays>=this.sp.gest)this._birth();}
+    this._behave(dt,all);
+    this._move(dt);
+    if(this.mesh){this.mesh.position.set(this.x,this.y,this.z);this.mesh.rotation.y=this.rot;}
+  }
+
+  _needs(dt){
+    const m=dt/60;
+    this.hunger=Math.max(0,this.hunger-this.sp.hr*m);
+    this.thirst=Math.max(0,this.thirst-this.sp.tr*m);
+    if(this.hunger<=0){this.hp-=.5*m;if(this.hp<=0){this.die('starvation');return;}}
+    if(this.thirst<=0){this.hp-=1.2*m;if(this.hp<=0){this.die('dehydration');return;}}
+  }
+
+  _behave(dt,all){
+    if(this.state!=='flee'){
+      const thr=this._threat(all);
+      if(thr){this._flee(thr);return;}
+    }
+    switch(this.state){
+      case'flee':
+        if(!this.fleeTarget?.alive||this._d(this.fleeTarget)>this.sp.flee*3){this.state='idle';this.stTimer=0;}
+        break;
+      case'idle':
+        if(this.stTimer>3+Math.random()*5){this.state=this._pick();this.stTimer=0;}
+        break;
+      case'wander':
+        if(this._near(3)){this._wander();if(Math.random()<.3){this.state='idle';this.stTimer=0;}}
+        break;
+      case'graze':
+        if(this.hunger>=this.sp.hpM*.9||this.stTimer>60){this.state='idle';this.stTimer=0;}
+        this.hunger=Math.min(this.sp.hpM,this.hunger+.8*dt/60);
+        break;
+      case'drink':
+        if(this.thirst>=this.sp.tpM*.9||this.stTimer>30){this.state='idle';this.stTimer=0;}
+        this.thirst=Math.min(this.sp.tpM,this.thirst+1.5*dt/60);
+        break;
+      case'sleep':
+        if(!isNight()&&this.stTimer>120){this.state='idle';this.stTimer=0;}
+        this.hp=Math.min(this.sp.hp,this.hp+.2*dt/60);
+        break;
+      case'hunt':  this._hunt(dt,all);  break;
+      case'chase': this._chase(dt,all); break;
+      case'attack':this._attack(dt,all);break;
+      case'mate':  this._mate(dt,all);  break;
+    }
+  }
+
+  _pick(){
+    if(isNight()&&this.sp.cat!=='pred'&&this.sp.cat!=='apex'&&Math.random()<.7)return'sleep';
+    if(this.thirst<this.sp.tpM*.25)return'drink';
+    if(this.hunger<this.sp.hpM*.3){
+      if(this.sp.cat==='prey'||this.sp.cat==='aquatic')return'graze';
+      if(this.sp.cat==='pred'||this.sp.cat==='apex'||this.sp.cat==='omni')return'hunt';
+    }
+    if(this.sex==='F'&&!this.pregnant&&this.repCool<=0&&this.age>365&&Math.random()<.04)return'mate';
+    return Math.random()<.5?'wander':'graze';
+  }
+
+  _hunt(dt,all){
+    if(!this.huntTarget){
+      const p=this._findPrey(all);
+      if(!p){this.state='wander';return;}
+      this.huntTarget=p;
+    }
+    const p=all.find(e=>e.id===this.huntTarget.id&&e.alive);
+    if(!p){this.huntTarget=null;this.state='idle';return;}
+    const d=this._d(p);
+    if(d<1.8){this.state='attack';this.stTimer=0;}
+    else if(d<this.sp.vis){this.state='chase';this.tx=p.x;this.tz=p.z;}
+    else{this.huntTarget=null;this.state='wander';}
+  }
+
+  _chase(dt,all){
+    const p=all.find(e=>e.id===this.huntTarget?.id&&e.alive);
+    if(!p){this.huntTarget=null;this.state='idle';return;}
+    this.tx=p.x;this.tz=p.z;
+    if(this._d(p)<1.5){this.state='attack';this.stTimer=0;}
+    if(this._d(p)>this.sp.vis*1.5){this.huntTarget=null;this.state='idle';}
+  }
+
+  _attack(dt,all){
+    const p=all.find(e=>e.id===this.huntTarget?.id&&e.alive);
+    if(!p){this.huntTarget=null;this.state='idle';return;}
+    if(this.stTimer>.5){
+      const dmg=this.sp.sz*8+Math.random()*5;
+      p.takeDmg(dmg,this);
+      this.stTimer=0;
+      if(!p.alive){
+        this.hunger=Math.min(this.sp.hpM,this.hunger+p.sp.food||15);
+        this.huntTarget=null;this.state='idle';
+        log(`Un ${this.name} a tué un ${p.name}.`,'world');
+      }
+    }
+  }
+
+  _mate(dt,all){
+    const partner=all.find(e=>e.alive&&e.species===this.species&&e.sex!==this.sex&&!e.pregnant&&e.repCool<=0&&this._d(e)<12);
+    if(partner){
+      this.pregnant=true;this.pregDays=0;this.repCool=this.sp.gest+60;
+      partner.repCool=60;this.state='idle';
+    }else if(this.stTimer>120){this.state='idle';}
+  }
+
+  _birth(){
+    this.pregnant=false;this.pregDays=0;
+    const px=this.x+(Math.random()-.5)*3,pz=this.z+(Math.random()-.5)*3;
+    const baby=new Animal(this.species,px,getHeight(px,pz),pz);
+    baby.age=0;baby.groupId=this.groupId;
+    S.animals.push(baby);
+    S.totalBirths++;
+  }
+
+  _threat(all){
+    for(const e of all){
+      if(!e.alive||e===this)continue;
+      if(e.type==='human'){if(this._d(e)<this.sp.flee*.6)return e;continue;}
+      if(!this.sp.pred.includes(e.species))continue;
+      if(this._d(e)<this.sp.flee)return e;
+    }
+    return null;
+  }
+
+  _findPrey(all){
+    let best=null,bd=Infinity;
+    for(const e of all){
+      if(!e.alive||e===this)continue;
+      if(!this.sp.prey.includes(e.species)&&!(e.type==='human'&&this.sp.pred.length===0&&this.sp.vdanger))continue;
+      if(e.type==='human'&&!this.sp.vdanger)continue; // only very dangerous attack humans
+      const d=this._d(e);
+      if(d<this.sp.vis&&d<bd){bd=d;best=e;}
+    }
+    return best;
+  }
+
+  _flee(thr){
+    this.state='flee';this.stTimer=0;this.fleeTarget=thr;
+    const dx=this.x-thr.x,dz=this.z-thr.z;
+    const d=Math.sqrt(dx*dx+dz*dz)||1;
+    this.tx=this.x+dx/d*100;this.tz=this.z+dz/d*100;
+  }
+
+  _wander(){
+    const r=20+Math.random()*40,a=Math.random()*Math.PI*2;
+    this.tx=Math.max(-950,Math.min(950,this.x+Math.cos(a)*r));
+    this.tz=Math.max(-950,Math.min(950,this.z+Math.sin(a)*r));
+  }
+
+  _move(dt){
+    const spd=this.state==='flee'||this.state==='chase'?this.sp.spd:this.sp.walk;
+    const dx=this.tx-this.x,dz=this.tz-this.z,d=Math.sqrt(dx*dx+dz*dz);
+    if(d>.5){this.x+=dx/d*spd*dt;this.z+=dz/d*spd*dt;this.rot=Math.atan2(dx/d,dz/d);}
+    this.x=Math.max(-950,Math.min(950,this.x));this.z=Math.max(-950,Math.min(950,this.z));
+    if(!this.sp.aerial)this.y=getHeight(this.x,this.z);
+  }
+
+  _near(t){return Math.hypot(this.x-this.tx,this.z-this.tz)<t;}
+  _d(o){return Math.hypot(this.x-o.x,this.z-o.z);}
+  takeDmg(amt,src){
+    this.hp-=amt;
+    if(this.hp<=0)this.die('killed',src);
+    else this._flee(src);
+  }
+  die(cause,killer=null){
+    this.alive=false;
+    S.totalDeaths++;
+    log(`💀 ${this.name} mort (${cause}).`,'world');
+  }
+}
+
+// ── HUMAN ─────────────────────────────────────────────────────────────
+const HNAMES=['Caïn','Abel','Seth','Noé','Ara','Lila','Maia','Elan','Kael','Tara','Rho','Sela','Oren','Nara','Vael','Isha','Kira','Danu','Amon','Bura','Ceda','Efa','Grun','Hara','Jora'];
+const SKILL_KEYS=['foraging','hunting','crafting','fire','social','shelter'];
+const STATE_LABELS={explore:'🚶 Explore',find_food:'🍖 Cherche nourriture',find_water:'💧 Cherche eau',hunt:'🏹 Chasse',gather:'🌿 Cueille',eat:'🍽 Mange',sleep:'😴 Dort',flee:'💨 Fuit!',fire:'🔥 Fait du feu',partner:'💑 Cherche partenaire',idle:'😐 Repos'};
+const SKILL_EMO={foraging:'🌿',hunting:'🏹',crafting:'🔧',fire:'🔥',social:'💬',shelter:'🏠'};
+
+class Human {
+  constructor(name,sex,x,y,z,parentA=null,parentB=null){
+    this.id=eid();this.name=name;this.sex=sex;this.type='human';this.alive=true;
+    this.x=x;this.y=y;this.z=z;this.tx=x;this.tz=z;this.rot=0;
+    this.age=parentA?0:(sex==='M'?20:18);
+    this.health=100;this.hunger=70;this.thirst=70;this.fatigue=20;this.warmth=100;
+    this.pregnant=false;this.pregDays=0;this.partner=null;this.repCool=0;
+    this.gen=parentA?Math.max(parentA.gen,(parentB?.gen||1))+1:1;
+    this.skills={};
+    SKILL_KEYS.forEach(k=>{
+      let b=.05;
+      if(parentA?.skills[k])b=(parentA.skills[k]+(parentB?.skills[k]||0))*.3;
+      this.skills[k]=Math.min(1,b+Math.random()*.04);
+    });
+    this.inv={food:0,fire:false,tools:[]};
+    this.discoveries=[];
+    this.state='explore';this.stTimer=0;this.taskT=null;
+    this.mesh=null;this._at=0;
+    if(parentA){this.inv.food=0;}else{this.inv.food=parentA?0:10;}
+  }
+
+  tick(dt,all){
+    if(!this.alive) return;
+    this._at+=dt;this.stTimer+=dt;
+    this.age+=dt/(86400*365);
+    if(this.age>=65){this.die('vieillesse');return;}
+    this._needs(dt);
+    if(!this.alive) return;
+    if(this.repCool>0)this.repCool-=dt/86400;
+    if(this.pregnant){this.pregDays+=dt/86400;if(this.pregDays>=280)this._birth();}
+    this._behave(dt,all);
+    this._move(dt);
+    if(this.mesh){this.mesh.position.set(this.x,this.y+.5,this.z);this.mesh.rotation.y=this.rot;}
+  }
+
+  _needs(dt){
+    const m=dt/60;
+    const cold=(S.season==='winter'?1.5:S.season==='autumn'?.5:0)+(isNight()?.6:0)+(['storm','snow'].includes(S.weather)?1.2:0);
+    this.hunger=Math.max(0,this.hunger-.8*m);
+    this.thirst=Math.max(0,this.thirst-1.2*m);
+    this.fatigue=Math.max(0,Math.min(100,this.fatigue+(this.state==='sleep'?-3:.3)*m));
+    this.warmth=Math.max(0,this.warmth-.3*cold*m);
+    if(this.hunger<=5) this.health-=1.5*m;
+    if(this.thirst<=5) this.health-=3*m;
+    if(this.warmth<=10)this.health-=2*m;
+    if(this.hunger>40&&this.thirst>40&&this.warmth>30)this.health=Math.min(100,this.health+.2*m);
+    if(this.health<=0)this.die('santé');
+  }
+
+  _behave(dt,all){
+    const thr=this._threat(all);
+    if(thr&&this.state!=='flee'){this._startFlee(thr);return;}
+    switch(this.state){
+      case'flee': if(!thr||this._d(thr)>60){this.state='idle';this.stTimer=0;}break;
+      case'idle': this.state=this._pick(all);this.stTimer=0;break;
+      case'sleep':if(this.fatigue<20||(!isNight()&&this.stTimer>180)){this.state='idle';this.stTimer=0;}break;
+      case'find_water':this._doWater(dt);break;
+      case'find_food': this.inv.food>0?this._setState('eat'):Math.random()<this.skills.hunting+.1?this._setState('hunt'):this._setState('gather');break;
+      case'gather':this._doGather(dt);break;
+      case'hunt':  this._doHunt(dt,all);break;
+      case'eat':   this._doEat(dt);break;
+      case'fire':  this._doFire(dt);break;
+      case'explore':this._doExplore(dt);break;
+      case'partner':this._doPartner(dt,all);break;
+    }
+  }
+
+  _pick(all){
+    if(this.fatigue>=85)return'sleep';
+    if(this.thirst<=20)return'find_water';
+    if(this.hunger<=20)return this.inv.food>0?'eat':'find_food';
+    if(this.warmth<=20&&!this.inv.fire)return'fire';
+    if(this.inv.food<5)return'find_food';
+    if(this.age>=14&&this.age<=45&&!this.partner&&this.repCool<=0&&!this.pregnant){
+      const p=all.find(e=>e.type==='human'&&e.alive&&e.sex!==this.sex&&!e.partner&&this._d(e)<150&&e.age>=14);
+      if(p)return'partner';
+    }
+    return'explore';
+  }
+
+  _doWater(dt){
+    this.tx=this.x+(Math.random()-.5)*15;this.tz=this.z+(Math.random()-.5)*15;
+    const bio=getBiome(this.tx,this.tz);
+    if(bio==='ocean'||bio==='beach'){this.thirst=Math.min(100,this.thirst+50);this.state='idle';}
+    if(this.stTimer>20){this.thirst=Math.min(100,this.thirst+20);this.state='idle';}
+  }
+
+  _doGather(dt){
+    if(this.stTimer>8+Math.random()*4){
+      const amt=3+Math.floor(this.skills.foraging*10);
+      this.inv.food+=amt;
+      this._skill('foraging',.002);
+      log(`${this.name} a cueilli ${amt} unités.`,'human');
+      this.state='eat';
+    }else{this.tx=this.x+(Math.random()-.5)*12;this.tz=this.z+(Math.random()-.5)*12;}
+  }
+
+  _doHunt(dt,all){
+    if(!this.taskT){
+      const prey=all.find(e=>e.alive&&e.type==='animal'&&['deer','rabbit','boar','bison','fish'].includes(e.species)&&this._d(e)<60);
+      if(!prey){this.state='gather';return;}
+      this.taskT=prey;
+    }
+    const prey=all.find(e=>e.id===this.taskT.id&&e.alive);
+    if(!prey){this.taskT=null;this.state='idle';return;}
+    this.tx=prey.x;this.tz=prey.z;
+    if(this._d(prey)<2){
+      const dmg=15+this.skills.hunting*25+Math.random()*10;
+      prey.takeDmg(dmg,this);
+      this._skill('hunting',.005);
+      if(!prey.alive){
+        this.inv.food+=prey.sp.food;
+        this.taskT=null;this.state='eat';
+        log(`🏹 ${this.name} a tué un ${prey.name}!`,'human');
+      }
+    }
+  }
+
+  _doEat(dt){
+    if(this.inv.food<=0){this.state='idle';return;}
+    const amt=Math.min(this.inv.food,20);
+    this.inv.food-=amt;this.hunger=Math.min(100,this.hunger+amt);
+    if(this.hunger>80)this.state='idle';
+  }
+
+  _doFire(dt){
+    if(this.stTimer>30-this.skills.fire*25){
+      this.inv.fire=true;this.warmth=Math.min(100,this.warmth+40);
+      this._skill('fire',.02);
+      if(!this.discoveries.includes('fire')){
+        this.discoveries.push('fire');
+        log(`✨ ${this.name} a découvert comment faire du feu!`,'discovery');
+      }
+      this.state='idle';
+    }
+  }
+
+  _doExplore(dt){
+    if(this._near(5)||this.stTimer>30){
+      const r=30+Math.random()*80,a=Math.random()*Math.PI*2;
+      this.tx=Math.max(-900,Math.min(900,this.x+Math.cos(a)*r));
+      this.tz=Math.max(-900,Math.min(900,this.z+Math.sin(a)*r));
+      this.stTimer=0;
+    }
+  }
+
+  _doPartner(dt,all){
+    const p=all.find(e=>e.type==='human'&&e.alive&&e.sex!==this.sex&&!e.partner&&e.repCool<=0&&e.age>=14&&this._d(e)<8);
+    if(p){
+      this.partner=p.id;p.partner=this.id;
+      if(this.sex==='F'){this.pregnant=true;this.pregDays=0;this.repCool=365*2;}
+      p.repCool=180;
+      log(`💑 ${this.name} et ${p.name} forment un couple.`,'human');
+      this.state='idle';
+    }else if(this.stTimer>120){this.state='idle';}
+    else{
+      const near=all.find(e=>e.type==='human'&&e.alive&&e.sex!==this.sex&&!e.partner&&e.age>=14&&this._d(e)<200);
+      if(near){this.tx=near.x;this.tz=near.z;}else{this._doExplore(dt);}
+    }
+  }
+
+  _birth(){
+    this.pregnant=false;this.pregDays=0;this.repCool=365*2;
+    const partnerObj=S.humans.find(h=>h.id===this.partner);
+    const nm=HNAMES[Math.floor(Math.random()*HNAMES.length)];
+    const sx=Math.random()<.5?'M':'F';
+    const baby=new Human(nm,sx,this.x+(Math.random()-.5)*3,this.y,this.z+(Math.random()-.5)*3,this,partnerObj);
+    S.humans.push(baby);S.totalBirths++;
+    S.population=S.humans.filter(h=>h.alive).length;
+    S.generation=Math.max(S.generation,baby.gen);
+    log(`👶 ${this.name} a donné naissance à ${nm}!`,'birth');
+  }
+
+  _threat(all){
+    for(const e of all){
+      if(!e.alive||e.type==='human')continue;
+      if(!e.sp?.danger&&!e.sp?.vdanger)continue;
+      if(this._d(e)<25)return e;
+    }
+    return null;
+  }
+
+  _startFlee(thr){
+    this.state='flee';this.stTimer=0;
+    const dx=this.x-thr.x,dz=this.z-thr.z,d=Math.sqrt(dx*dx+dz*dz)||1;
+    this.tx=this.x+dx/d*120;this.tz=this.z+dz/d*120;
+    log(`⚠️ ${this.name} fuit un ${thr.name}!`,'danger');
+  }
+
+  _move(dt){
+    const spd=this.state==='flee'?7:3.5,fac=this.fatigue>80?.5:1;
+    const dx=this.tx-this.x,dz=this.tz-this.z,d=Math.sqrt(dx*dx+dz*dz);
+    if(d>1){this.x+=dx/d*spd*fac*dt;this.z+=dz/d*spd*fac*dt;this.rot=Math.atan2(dx/d,dz/d);}
+    this.x=Math.max(-950,Math.min(950,this.x));this.z=Math.max(-950,Math.min(950,this.z));
+    this.y=getHeight(this.x,this.z);
+  }
+
+  _skill(k,v){this.skills[k]=Math.min(1,(this.skills[k]||0)+v);}
+  _near(t){return Math.hypot(this.x-this.tx,this.z-this.tz)<t;}
+  _d(o){return Math.hypot(this.x-o.x,this.z-o.z);}
+  _setState(s){this.state=s;this.stTimer=0;}
+
+  takeDmg(amt,src){
+    this.health-=amt;
+    if(this.health<=0)this.die('blessures',src);
+    else{this._startFlee(src);log(`💥 ${this.name} blessé(e)!`,'danger');}
+  }
+  die(cause,killer=null){
+    this.alive=false;S.totalDeaths++;
+    S.population=S.humans.filter(h=>h.alive).length;
+    log(`💀 ${this.name} est mort(e) (${cause}).`,'death');
+  }
+}
+
+// ── ECOSYSTEM INIT ────────────────────────────────────────────────────
+function initEcosystem(){
+  // Adam & Ève
+  const ay=getHeight(CFG.ADAM.x,CFG.ADAM.z);
+  const ey=getHeight(CFG.EVE.x,CFG.EVE.z);
+  const adam=new Human('Adam','M',CFG.ADAM.x,ay,CFG.ADAM.z);
+  const eve =new Human('Ève', 'F',CFG.EVE.x, ey,CFG.EVE.z);
+  adam.inv.food=15;eve.inv.food=12;
+  S.humans.push(adam,eve);
+
+  // Animaux
+  for(const[key,count] of Object.entries(CFG.ANIMALS)){
+    for(let i=0;i<count;i++){
+      const sp=SP[key];if(!sp)continue;
+      const pos=sp.aquatic?{x:(Math.random()-.5)*400,y:0,z:(Math.random()-.5)*400}:randLandPos(20,100);
+      const a=new Animal(key,pos.x,pos.y,pos.z);
+      a.age=Math.random()*sp.life*.6;
+      S.animals.push(a);
+    }
+  }
+  S.population=2;
+}
+
+function tickEcosystem(simDt){
+  const all=[...S.humans,...S.animals];
+  for(const a of S.animals.filter(x=>x.alive)) a.tick(simDt,all);
+  for(const h of S.humans.filter(x=>x.alive))  h.tick(simDt,all);
+  // Nettoyer morts
+  S.animals=S.animals.filter(a=>{
+    if(!a.alive&&a.mesh){SCENE.scene.remove(a.mesh);a.mesh=null;}
+    return a.alive;
+  });
+}
+
+function checkRespawn(){
+  if(S.animals.length>=CFG.MAX_ANIMALS)return;
+  const counts={};S.animals.forEach(a=>counts[a.species]=(counts[a.species]||0)+1);
+  for(const[sp,initC] of Object.entries(CFG.ANIMALS)){
+    const cur=counts[sp]||0;
+    if(cur<Math.max(2,initC*.25)&&Math.random()<CFG.RESPAWN_RATE){
+      const a=Math.random()*Math.PI*2,r=300+Math.random()*400;
+      const px=Math.cos(a)*r,pz=Math.sin(a)*r;
+      const na=new Animal(sp,px,getHeight(px,pz),pz);
+      S.animals.push(na);
+    }
+  }
+}
+
+// ── THREE.JS SCENE ────────────────────────────────────────────────────
+const SCENE={renderer:null,scene:null,camera:null,sun:null,ambient:null,moon:null,sky:null};
+
+function initScene(){
+  const canvas=document.getElementById('canvas');
+  SCENE.renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});
+  SCENE.renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  SCENE.renderer.setSize(innerWidth,innerHeight,false);
+  SCENE.renderer.shadowMap.enabled=true;
+  SCENE.renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+
+  SCENE.scene=new THREE.Scene();
+  SCENE.scene.fog=new THREE.FogExp2(0x8ab4cc,.0007);
+
+  SCENE.camera=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,.1,4000);
+  SCENE.camera.position.set(20,80,120);SCENE.camera.lookAt(0,30,0);
+
+  // Lights
+  SCENE.ambient=new THREE.AmbientLight(0x404060,.5);SCENE.scene.add(SCENE.ambient);
+  SCENE.sun=new THREE.DirectionalLight(0xfff5d0,1.4);
+  SCENE.sun.position.set(200,400,200);SCENE.sun.castShadow=true;
+  SCENE.sun.shadow.mapSize.set(CFG.SHADOW_SIZE,CFG.SHADOW_SIZE);
+  SCENE.sun.shadow.camera.near=1;SCENE.sun.shadow.camera.far=2000;
+  SCENE.sun.shadow.camera.left=SCENE.sun.shadow.camera.bottom=-700;
+  SCENE.sun.shadow.camera.right=SCENE.sun.shadow.camera.top=700;
+  SCENE.sun.shadow.bias=-.0004;
+  SCENE.scene.add(SCENE.sun);
+  SCENE.moon=new THREE.DirectionalLight(0x4060a0,.12);SCENE.moon.position.set(-200,300,-200);SCENE.scene.add(SCENE.moon);
+  SCENE.scene.add(new THREE.HemisphereLight(0x6090c0,0x3a6020,.5));
+
+  // Sky dome
+  const skyGeo=new THREE.SphereGeometry(3500,32,16);
+  const skyMat=new THREE.ShaderMaterial({
+    uniforms:{top:{value:new THREE.Color(0x4080d0)},bot:{value:new THREE.Color(0x80b8e0)}},
+    vertexShader:`varying vec3 vW;void main(){vW=(modelMatrix*vec4(position,1.0)).xyz;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
+    fragmentShader:`uniform vec3 top,bot;varying vec3 vW;void main(){float h=pow(max(normalize(vW).y,0.0),.5);gl_FragColor=vec4(mix(bot,top,h),1.0);}`,
+    side:THREE.BackSide,depthWrite:false
+  });
+  SCENE.sky=new THREE.Mesh(skyGeo,skyMat);SCENE.sky.name='sky';SCENE.scene.add(SCENE.sky);
+
+  // Stars
+  const sg=new THREE.BufferGeometry(),sp=new Float32Array(2000*3);
+  for(let i=0;i<2000;i++){const t=Math.random()*Math.PI*2,p=Math.acos(2*Math.random()-1),r=3400;sp[i*3]=r*Math.sin(p)*Math.cos(t);sp[i*3+1]=Math.abs(r*Math.cos(p))+50;sp[i*3+2]=r*Math.sin(p)*Math.sin(t);}
+  sg.setAttribute('position',new THREE.BufferAttribute(sp,3));
+  const stars=new THREE.Points(sg,new THREE.PointsMaterial({color:0xffffff,size:1.5,transparent:true,opacity:0}));
+  stars.name='stars';SCENE.scene.add(stars);
+}
+
+function updateLighting(){
+  const h=S.hour,w=S.weather;
+  const sc=skyColors();
+  if(SCENE.sky?.material?.uniforms){
+    SCENE.sky.material.uniforms.top.value.setHex(sc[0]);
+    SCENE.sky.material.uniforms.bot.value.setHex(sc[1]);
+  }
+  let si=sunInt();
+  if(w==='storm')si*=.15;else if(w==='rain')si*=.4;else if(w==='cloudy')si*=.6;
+  if(SCENE.sun){
+    SCENE.sun.intensity=si*1.4;
+    SCENE.sun.color.setRGB(1,.88+si*.12,.65+si*.35);
+    const ang=((h-6)/12)*Math.PI;
+    SCENE.sun.position.set(Math.cos(ang)*400,Math.abs(Math.sin(ang))*500+30,180);
+  }
+  if(SCENE.ambient)SCENE.ambient.intensity=.15+si*.45;
+  if(SCENE.moon)SCENE.moon.intensity=(h<5.5||h>20.5)?.18:0;
+  const fd={clear:.0007,cloudy:.0012,rain:.002,storm:.004,snow:.0025};
+  SCENE.scene.fog.density=fd[w]||.0007;
+  SCENE.scene.fog.color.setHex(sc[1]);
+  SCENE.renderer.setClearColor(SCENE.scene.fog.color);
+  const stars=SCENE.scene.getObjectByName('stars');
+  if(stars){const n=h<5.5||h>20.5?1:h<7?(7-h)/1.5:h>19?(h-19)/1.5:0;stars.material.opacity=n*.85;}
+  if(TERRAIN.waterMesh){
+    const t=performance.now()/1000;
+    TERRAIN.waterMesh.material.opacity=.7+Math.sin(t*.4)*.06;
+    TERRAIN.waterMesh.position.y=CFG.WATER+.3+Math.sin(t*.25)*.12;
+  }
+}
+
+// ── MESHES ────────────────────────────────────────────────────────────
+const _mmap=new Map();
+
+function mL(c){return new THREE.MeshLambertMaterial({color:c});}
+function cAll(g){g.traverse(c=>{if(c.isMesh)c.castShadow=true;});}
+
+function legs4(g,m,r,h,xo,zo){
+  const geo=new THREE.CylinderGeometry(r,r*.8,h,6);
+  [[-xo,zo],[xo,zo],[-xo,-zo],[xo,-zo]].forEach(([x,z])=>{
+    const l=new THREE.Mesh(geo,m);l.position.set(x,h/2,z);g.add(l);});
+}
+
+function makeNameTag(name,color){
+  const cv=document.createElement('canvas');cv.width=256;cv.height=64;
+  const cx=cv.getContext('2d');cx.font='bold 26px Georgia,serif';cx.fillStyle=color;
+  cx.textAlign='center';cx.shadowColor='rgba(0,0,0,.9)';cx.shadowBlur=6;cx.fillText(name,128,42);
+  return new THREE.Mesh(
+    new THREE.PlaneGeometry(2.2,.55),
+    new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(cv),transparent:true,depthWrite:false,side:THREE.DoubleSide})
+  );
+}
+
+function buildHumanMesh(h){
+  const g=new THREE.Group();
+  const iM=h.sex==='M';
+  const skin=mL(iM?0xd4956a:0xe8a878),cloth=mL(iM?0x5a4030:0x8a5040),hair=mL(iM?0x3a2010:0x6a3020),eye=mL(0x111111);
+  const body=new THREE.Mesh(new THREE.CylinderGeometry(.28,.22,.9,8),cloth);body.position.y=.85;g.add(body);
+  const head=new THREE.Mesh(new THREE.SphereGeometry(.22,10,8),skin);head.position.y=1.65;g.add(head);
+  const hairM=new THREE.Mesh(new THREE.SphereGeometry(.235,10,8,0,Math.PI*2,0,Math.PI*.55),hair);hairM.position.y=1.72;g.add(hairM);
+  const neck=new THREE.Mesh(new THREE.CylinderGeometry(.08,.09,.18,6),skin);neck.position.y=1.42;g.add(neck);
+  const aG=new THREE.CylinderGeometry(.07,.07,.55,6);
+  const aL=new THREE.Mesh(aG,skin);aL.position.set(-.36,.88,0);aL.rotation.z=.25;g.add(aL);
+  const aR=new THREE.Mesh(aG,skin);aR.position.set(.36,.88,0);aR.rotation.z=-.25;g.add(aR);
+  const lG=new THREE.CylinderGeometry(.1,.08,.6,7);
+  const lL=new THREE.Mesh(lG,cloth);lL.position.set(-.14,.28,0);g.add(lL);
+  const lR=new THREE.Mesh(lG,cloth);lR.position.set(.14,.28,0);g.add(lR);
+  const eG=new THREE.SphereGeometry(.04,5,4);
+  const eL=new THREE.Mesh(eG,eye);eL.position.set(-.09,1.66,.19);g.add(eL);
+  const eR=new THREE.Mesh(eG,eye);eR.position.set(.09,1.66,.19);g.add(eR);
+  const sh=new THREE.Mesh(new THREE.CircleGeometry(.3,8),new THREE.MeshBasicMaterial({color:0,transparent:true,opacity:.2}));
+  sh.rotation.x=-Math.PI/2;sh.position.y=.02;g.add(sh);
+  const tag=makeNameTag(h.name,'#f0c060');tag.position.y=2.2;tag.name='tag';g.add(tag);
+  cAll(g);g.name='human_'+h.id;g.userData={eid:h.id,type:'human'};
+  h.mesh=g;return g;
+}
+
+function buildAnimalMesh(a){
+  const sp=a.sp,col=sp.col||0xa07040;
+  const g=new THREE.Group(),main=mL(col),dark=mL(Math.max(0,col-0x222222));
+  ({
+    deer:    ()=>{
+      const b=new THREE.Mesh(new THREE.SphereGeometry(.42,8,6),main);b.scale.set(1.8,1,1.1);b.position.y=1;g.add(b);
+      const n=new THREE.Mesh(new THREE.CylinderGeometry(.13,.16,.55,7),main);n.position.set(.52,1.3,0);n.rotation.z=-.6;g.add(n);
+      const h=new THREE.Mesh(new THREE.SphereGeometry(.21,8,7),main);h.position.set(.88,1.5,0);g.add(h);
+      legs4(g,dark,.07,.55,.38,.45);
+      const aM=mL(0x6a4020);[-1,1].forEach(s=>{const st=new THREE.Mesh(new THREE.CylinderGeometry(.025,.04,.5,5),aM);st.position.set(.82,1.8,s*.12);st.rotation.z=s*.35;g.add(st);});
+    },
+    wolf:    ()=>{
+      const b=new THREE.Mesh(new THREE.SphereGeometry(.32,8,7),main);b.scale.set(2,1,1);b.position.y=.6;g.add(b);
+      const n=new THREE.Mesh(new THREE.CylinderGeometry(.12,.15,.38,7),main);n.position.set(.55,.78,0);n.rotation.z=-.5;g.add(n);
+      const h=new THREE.Mesh(new THREE.SphereGeometry(.19,8,7),main);h.position.set(.72,.88,0);g.add(h);
+      [-1,1].forEach(s=>{const e=new THREE.Mesh(new THREE.ConeGeometry(.07,.18,5),dark);e.position.set(.65,1.06,s*.12);g.add(e);});
+      legs4(g,dark,.06,.42,.28,.38);
+    },
+    rabbit:  ()=>{
+      const b=new THREE.Mesh(new THREE.SphereGeometry(.18,8,7),main);b.scale.set(1.2,1,1);b.position.y=.22;g.add(b);
+      const h=new THREE.Mesh(new THREE.SphereGeometry(.13,8,7),main);h.position.set(.2,.35,0);g.add(h);
+      [-1,1].forEach(s=>{const e=new THREE.Mesh(new THREE.CylinderGeometry(.035,.03,.26,5),main);e.position.set(.18,.6,s*.07);g.add(e);});
+    },
+    mammoth: ()=>{
+      const b=new THREE.Mesh(new THREE.SphereGeometry(1,10,8),main);b.scale.set(2,1.2,1.3);b.position.y=2;g.add(b);
+      const h=new THREE.Mesh(new THREE.SphereGeometry(.65,10,8),main);h.position.set(1.85,2.6,0);g.add(h);
+      const tr=new THREE.Mesh(new THREE.CylinderGeometry(.1,.17,1.4,8),main);tr.position.set(2.15,2.1,0);tr.rotation.z=-.5;g.add(tr);
+      const tM=mL(0xf0e8c0);[-1,1].forEach(s=>{const t=new THREE.Mesh(new THREE.CylinderGeometry(.04,.09,1.1,6),tM);t.position.set(2.2,1.9,s*.35);t.rotation.set(0,0,-.28);g.add(t);});
+      legs4(g,dark,.22,1.3,.55,1.05);
+    },
+    bison:   ()=>{
+      const b=new THREE.Mesh(new THREE.SphereGeometry(.65,9,7),main);b.scale.set(2,1.1,1.2);b.position.y=1.15;g.add(b);
+      const hp=new THREE.Mesh(new THREE.SphereGeometry(.5,7,6),dark);hp.scale.set(.9,.65,.8);hp.position.set(.5,1.88,0);g.add(hp);
+      const h=new THREE.Mesh(new THREE.SphereGeometry(.36,8,7),dark);h.position.set(1.2,1.4,0);g.add(h);
+      legs4(g,dark,.12,.78,.38,.72);
+    },
+    bear:    ()=>{
+      const b=new THREE.Mesh(new THREE.SphereGeometry(.7,9,7),main);b.scale.set(1.8,1.1,1.2);b.position.y=1.05;g.add(b);
+      const h=new THREE.Mesh(new THREE.SphereGeometry(.42,8,7),main);h.position.set(1.1,1.42,0);g.add(h);
+      const sn=new THREE.Mesh(new THREE.SphereGeometry(.22,7,5),dark);sn.scale.set(1.2,.8,1);sn.position.set(1.42,1.3,0);g.add(sn);
+      legs4(g,dark,.15,.68,.42,.62);
+    },
+    boar:    ()=>{
+      const b=new THREE.Mesh(new THREE.SphereGeometry(.38,8,7),main);b.scale.set(1.9,1,1.1);b.position.y=.62;g.add(b);
+      const h=new THREE.Mesh(new THREE.SphereGeometry(.25,8,6),main);h.position.set(.72,.72,0);g.add(h);
+      const fM=mL(0xf0e8c0);[-1,1].forEach(s=>{const f=new THREE.Mesh(new THREE.CylinderGeometry(.025,.01,.22,4),fM);f.position.set(.98,.55,s*.08);f.rotation.z=.25;g.add(f);});
+      legs4(g,dark,.08,.42,.24,.42);
+    },
+    eagle:   ()=>{
+      const b=new THREE.Mesh(new THREE.SphereGeometry(.22,8,6),main);b.scale.set(1.6,1,1);b.position.y=.3;g.add(b);
+      const h=new THREE.Mesh(new THREE.SphereGeometry(.14,8,6),mL(0xf0f0e0));h.position.set(.4,.38,0);g.add(h);
+      [-1,1].forEach(s=>{const w=new THREE.Mesh(new THREE.BoxGeometry(.08,.04,.85),dark);w.position.set(0,.3,s*.52);w.name='wing';g.add(w);});
+    },
+    sabre:   ()=>{
+      const b=new THREE.Mesh(new THREE.SphereGeometry(.44,9,7),main);b.scale.set(2,.9,1.1);b.position.y=.72;g.add(b);
+      const h=new THREE.Mesh(new THREE.SphereGeometry(.3,8,7),main);h.position.set(.92,1.05,0);g.add(h);
+      const fM=mL(0xf8f0e0);[-1,1].forEach(s=>{const f=new THREE.Mesh(new THREE.CylinderGeometry(.025,.008,.42,5),fM);f.position.set(1,.72,s*.09);f.rotation.z=.15;g.add(f);});
+      const eM=mL(0x40c060);[-1,1].forEach(s=>{const e=new THREE.Mesh(new THREE.SphereGeometry(.04,5,4),eM);e.position.set(1.1,1.1,s*.14);g.add(e);});
+      legs4(g,dark,.1,.54,.3,.5);
+    },
+    fish:    ()=>{
+      const b=new THREE.Mesh(new THREE.SphereGeometry(.16,8,6),main);b.scale.set(2,.7,.6);g.add(b);
+      const t=new THREE.Mesh(new THREE.ConeGeometry(.14,.22,4),main);t.rotation.z=Math.PI/2;t.position.x=-.3;g.add(t);
+    },
+  }[a.species]||(() => {const m=new THREE.Mesh(new THREE.SphereGeometry(sp.sz*.25,6,5),main);m.position.y=sp.sz*.25;g.add(m);}))();
+
+  const sh=new THREE.Mesh(new THREE.CircleGeometry(Math.max(.2,sp.sz*.3),8),new THREE.MeshBasicMaterial({color:0,transparent:true,opacity:.15}));
+  sh.rotation.x=-Math.PI/2;sh.position.y=.01;g.add(sh);
+  cAll(g);g.name='animal_'+a.id;g.userData={eid:a.id,type:'animal',species:a.species};
+  a.mesh=g;return g;
+}
+
+function syncMeshes(){
+  const all=[...S.humans,...S.animals];
+  for(const e of all){
+    if(!e.mesh&&e.alive){
+      try{
+        const m=e.type==='human'?buildHumanMesh(e):buildAnimalMesh(e);
+        SCENE.scene.add(m);_mmap.set(e.id,m);
+      }catch(err){console.warn('Mesh err',e.species||e.name,err.message);}
+    }
+  }
+  for(const[id,m] of _mmap){
+    const e=all.find(x=>x.id===id);
+    if(!e||!e.alive){SCENE.scene.remove(m);m.traverse(c=>{if(c.geometry)c.geometry.dispose();if(c.material){if(c.material.map)c.material.map.dispose();c.material.dispose();}});_mmap.delete(id);}
+  }
+}
+
+function animateMeshes(t){
+  for(const h of S.humans){
+    if(!h.alive||!h.mesh)continue;
+    const ch=h.mesh.children,mv=!['sleep','idle'].includes(h.state);
+    const sw=mv?Math.sin(t*4.5)*.4:0;
+    if(ch[4])ch[4].rotation.x=sw;if(ch[5])ch[5].rotation.x=-sw;
+    if(ch[6])ch[6].rotation.x=-sw;if(ch[7])ch[7].rotation.x=sw;
+    const tag=h.mesh.getObjectByName('tag');if(tag)tag.rotation.y=-h.mesh.rotation.y;
+    h.mesh.rotation.z=h.state==='sleep'?Math.PI/2:0;
+  }
+  for(const a of S.animals){
+    if(!a.alive||!a.mesh)continue;
+    const mv=['flee','chase','hunt','wander'].includes(a.state);
+    const sw=mv?Math.sin(t*5)*.28:0;
+    const ch=a.mesh.children;
+    if(ch[2])ch[2].rotation.x=sw;if(ch[3])ch[3].rotation.x=-sw;
+    if(ch[4])ch[4].rotation.x=-sw;if(ch[5])ch[5].rotation.x=sw;
+    if(a.species==='eagle'&&mv)a.mesh.children.filter(c=>c.name==='wing').forEach((w,i)=>{w.rotation.z=Math.sin(t*8)*.5*(i?-1:1);});
+  }
+}
+
+// ── CAMERA CONTROLLER ─────────────────────────────────────────────────
+const CAM={mode:'follow',target:null,focus:'adam',freeR:100,freePhi:.4,freeTheta:0,freeF:{x:0,y:30,z:0},drag:false,rDrag:false,lmx:0,lmy:0,curPos:{x:20,y:80,z:120}};
+
+function initCamControls(){
+  const cv=document.getElementById('canvas');
+  cv.addEventListener('mousedown',e=>{if(e.button===1){setCam('god');return;}CAM.drag=true;CAM.rDrag=e.button===2;CAM.lmx=e.clientX;CAM.lmy=e.clientY;});
+  window.addEventListener('mouseup',()=>CAM.drag=false);
+  window.addEventListener('mousemove',e=>{
+    if(!CAM.drag)return;
+    const dx=e.clientX-CAM.lmx,dy=e.clientY-CAM.lmy;CAM.lmx=e.clientX;CAM.lmy=e.clientY;
+    if(CAM.mode==='free'||CAM.mode==='inspect'||CAM.rDrag){CAM.freeTheta-=dx*.005;CAM.freePhi=Math.max(.06,Math.min(Math.PI*.47,CAM.freePhi+dy*.005));}
+    if(CAM.mode==='god'||e.shiftKey){const sc=CAM.freeR*.0015;CAM.freeF.x-=dx*sc;CAM.freeF.z-=dy*sc;}
+  });
+  cv.addEventListener('wheel',e=>{e.preventDefault();CAM.freeR=Math.max(4,Math.min(600,CAM.freeR+e.deltaY*.08));},{passive:false});
+  cv.addEventListener('contextmenu',e=>e.preventDefault());
+  window.addEventListener('keydown',e=>{
+    if(document.activeElement?.tagName==='INPUT')return;
+    const k=e.key;
+    if(k==='1')setCam('follow');else if(k==='2')setCam('free');else if(k==='3')setCam('god');else if(k==='4')setCam('inspect');
+    else if(k==='a'||k==='A')focusHuman('Adam');else if(k==='v'||k==='V')focusHuman('Ève');
+    else if(k===' '){e.preventDefault();S.paused=!S.paused;updateSpeedDisplay();}
+    else if(k==='+'||k==='=')setSpeed(Math.min(20,S.speed*2));
+    else if(k==='-'||k==='_')setSpeed(Math.max(.25,S.speed/2));
+  });
+}
+
+function setCam(mode,tid){
+  CAM.mode=mode;S.camMode=mode;
+  if(tid!==undefined)CAM.target=tid;
+  document.querySelectorAll('.cbtn').forEach(b=>b.classList.remove('on'));
+  const btn=document.getElementById('c-'+mode);if(btn)btn.classList.add('on');
+  document.getElementById('hud-cam').textContent='📷 '+{follow:'Suivi',free:'Libre',god:'Vue Dieu',inspect:'Inspect'}[mode];
+}
+
+function focusHuman(name){
+  const h=S.humans.find(h=>h.name===name&&h.alive);
+  if(!h)return;
+  CAM.target=h.id;CAM.focus=name==='Adam'?'adam':'eve';
+  CAM.freeF.x=h.x;CAM.freeF.y=h.y;CAM.freeF.z=h.z;
+  setCam('follow',h.id);
+}
+
+function getCamTarget(){
+  const all=[...S.humans,...S.animals];
+  if(CAM.target){const e=all.find(x=>x.id===CAM.target&&x.alive);if(e)return e;}
+  if(CAM.focus==='adam')return S.humans.find(h=>h.name==='Adam'&&h.alive);
+  if(CAM.focus==='eve') return S.humans.find(h=>h.name==='Ève'&&h.alive);
+  return S.humans.find(h=>h.alive);
+}
+
+function updateCamera(dt){
+  const cam=SCENE.camera;
+  switch(CAM.mode){
+    case'follow':{
+      const e=getCamTarget();if(!e){setCam('god');return;}
+      const dir=e.rot||0,behind=20,above=15;
+      const tx=e.x-Math.sin(dir)*behind,ty=e.y+above,tz=e.z-Math.cos(dir)*behind;
+      CAM.curPos.x+=(tx-CAM.curPos.x)*Math.min(1,dt*2.5);
+      CAM.curPos.y+=(ty-CAM.curPos.y)*Math.min(1,dt*2.5);
+      CAM.curPos.z+=(tz-CAM.curPos.z)*Math.min(1,dt*2.5);
+      cam.position.set(CAM.curPos.x,CAM.curPos.y,CAM.curPos.z);
+      cam.lookAt(e.x,e.y+2,e.z);
+      break;
+    }
+    case'free':case'inspect':{
+      if(CAM.mode==='inspect'){
+        const e=getCamTarget();
+        if(e){CAM.freeTheta+=dt*.25;CAM.freeF.x=e.x;CAM.freeF.y=e.y;CAM.freeF.z=e.z;CAM.freeR=Math.max(6,(e.sp?.sz||1)*6);}
+      }
+      const fx=CAM.freeF.x+CAM.freeR*Math.sin(CAM.freePhi)*Math.sin(CAM.freeTheta);
+      const fy=CAM.freeF.y+CAM.freeR*Math.cos(CAM.freePhi);
+      const fz=CAM.freeF.z+CAM.freeR*Math.sin(CAM.freePhi)*Math.cos(CAM.freeTheta);
+      cam.position.set(fx,fy,fz);cam.lookAt(CAM.freeF.x,CAM.freeF.y,CAM.freeF.z);
+      break;
+    }
+    case'god':{
+      const alive=S.humans.filter(h=>h.alive);
+      if(alive.length>0){
+        const cx=alive.reduce((s,h)=>s+h.x,0)/alive.length;
+        const cz=alive.reduce((s,h)=>s+h.z,0)/alive.length;
+        CAM.freeF.x+=(cx-CAM.freeF.x)*dt*.5;CAM.freeF.z+=(cz-CAM.freeF.z)*dt*.5;
+      }
+      cam.position.x+=(CAM.freeF.x-cam.position.x)*dt*1.2;
+      cam.position.y+=(280-cam.position.y)*dt*1.2;
+      cam.position.z+=(CAM.freeF.z+30-cam.position.z)*dt*1.2;
+      cam.lookAt(CAM.freeF.x,CAM.freeF.y,CAM.freeF.z);
+      break;
+    }
+  }
+}
+
+// ── RAYCASTER ─────────────────────────────────────────────────────────
+function initRaycaster(){
+  const rc=new THREE.Raycaster(),mouse=new THREE.Vector2();
+  const cv=document.getElementById('canvas'),tip=document.getElementById('tip');
+  let tipTimer=null;
+
+  cv.addEventListener('mousemove',e=>{
+    clearTimeout(tipTimer);
+    const rect=cv.getBoundingClientRect();
+    mouse.x=((e.clientX-rect.left)/rect.width)*2-1;
+    mouse.y=-((e.clientY-rect.top)/rect.height)*2+1;
+    rc.setFromCamera(mouse,SCENE.camera);
+    const hits=rc.intersectObjects(SCENE.scene.children,true);
+    let found=null;
+    for(const h of hits){let o=h.object;while(o&&!o.userData?.eid)o=o.parent;if(o?.userData?.eid){found=o;break;}}
+    if(found){
+      const all=[...S.humans,...S.animals];
+      const ent=all.find(x=>x.id===found.userData.eid&&x.alive);
+      if(ent){
+        tip.style.display='block';tip.style.left=(e.clientX+14)+'px';tip.style.top=(e.clientY-10)+'px';
+        tip.innerHTML=ent.type==='human'?
+          `<b style="color:#f0c060">${ent.name}</b> (${ent.sex})<br>${ent.age.toFixed(1)} ans · Gén. ${ent.gen}<br>❤ ${Math.floor(ent.health)}% · 🍖 ${Math.floor(ent.hunger)}%<br>${STATE_LABELS[ent.state]||ent.state}<br><small style="color:#6080a0">Clic → Inspecter</small>`:
+          `<b style="color:#e8d090">${ent.name}</b><br>${ent.sex==='M'?'♂':'♀'} · ${Math.floor(ent.age)} jours<br>❤ ${Math.floor(ent.hp/ent.sp.hp*100)}%<br>${ent.state}${ent.pregnant?' · 🤰':''}<br><small style="color:#6080a0">Clic → Inspecter</small>`;
+        tipTimer=setTimeout(()=>tip.style.display='none',3000);
+        return;
+      }
+    }
+    tip.style.display='none';
+  });
+
+  cv.addEventListener('click',e=>{
+    const rect=cv.getBoundingClientRect();
+    mouse.x=((e.clientX-rect.left)/rect.width)*2-1;
+    mouse.y=-((e.clientY-rect.top)/rect.height)*2+1;
+    rc.setFromCamera(mouse,SCENE.camera);
+    const hits=rc.intersectObjects(SCENE.scene.children,true);
+    for(const h of hits){
+      let o=h.object;while(o&&!o.userData?.eid)o=o.parent;
+      if(o?.userData?.eid){CAM.target=o.userData.eid;setCam('inspect',o.userData.eid);break;}
+    }
+  });
+}
+
+// ── HUD UPDATE ────────────────────────────────────────────────────────
+function updateHUD(){
+  const h=Math.floor(S.hour),mn=Math.floor((S.hour%1)*60);
+  const tod=S.hour<6?'🌙':S.hour<8?'🌅':S.hour<18?'☀':S.hour<21?'🌆':'🌙';
+  document.getElementById('hud-time').textContent=`${tod} ${h}:${String(mn).padStart(2,'0')}`;
+  document.getElementById('hud-date').textContent=`Jour ${S.day} · An ${S.year} · ${SEASON_NAMES[S.season]}`;
+  document.getElementById('hud-pop').textContent=`👥 ${S.population}`;
+  const counts={};S.animals.forEach(a=>counts[a.species]=(counts[a.species]||0)+1);
+  document.getElementById('hud-animals').textContent=Object.entries(counts).sort(([,a],[,b])=>b-a).slice(0,4).map(([s,c])=>`${c} ${{deer:'🦌',wolf:'🐺',rabbit:'🐰',mammoth:'🦣',bison:'🐃',bear:'🐻',boar:'🐗',eagle:'🦅',sabre:'🐆',fish:'🐟'}[s]||'🐾'}`).join(' ');
+
+  const adam=S.humans.find(h=>h.name==='Adam');
+  const eve =S.humans.find(h=>h.name==='Ève');
+  if(adam) renderPanel('adam',adam);
+  if(eve)  renderPanel('eve',eve);
+
+  // Divine energy
+  document.getElementById('efill').style.width=S.divineEnergy+'%';
+  document.getElementById('eval').textContent=Math.floor(S.divineEnergy);
+}
+
+function renderPanel(who,h){
+  const bar=(id,val,max,col)=>{
+    const el=document.getElementById(id);if(!el)return;
+    const pct=Math.max(0,Math.min(100,(val/max)*100));
+    el.style.width=pct+'%';el.style.background=pct<25?'#e03030':col;
+  };
+  bar(`${who}-hunger`,h.hunger,100,'#e8a840');
+  bar(`${who}-thirst`,h.thirst,100,'#60b0e0');
+  bar(`${who}-health`,h.health,100,'#60c870');
+  bar(`${who}-energy`,100-h.fatigue,100,'#a060e0');
+  bar(`${who}-warmth`,h.warmth,100,'#f06030');
+
+  const st=document.getElementById(`${who}-state`);if(st)st.textContent=(h.pregnant?`🤰 Enceinte (${Math.floor(h.pregDays)}/280j)`:STATE_LABELS[h.state]||h.state);
+  const age=document.getElementById(`${who}-age`);if(age)age.textContent=h.age.toFixed(1)+' ans';
+
+  const top=Object.entries(h.skills).filter(([,v])=>v>.05).sort(([,a],[,b])=>b-a).slice(0,3).map(([k,v])=>`${SKILL_EMO[k]||'⚡'} ${Math.floor(v*100)}%`).join(' · ');
+  const sk=document.getElementById(`${who}-skills`);if(sk)sk.textContent=top||'—';
+
+  const items=[];if(h.inv.food>0)items.push(`🍖×${Math.floor(h.inv.food)}`);if(h.inv.fire)items.push('🔥');if(h.inv.tools.length)items.push(`🔧×${h.inv.tools.length}`);
+  const iv=document.getElementById(`${who}-inv`);if(iv)iv.textContent=items.join(' ')||'(vide)';
+}
+
+function updateSpeedDisplay(){
+  document.getElementById('hud-speed').textContent=S.paused?'⏸ Pause':`▶ ×${S.speed}`;
+}
+
+function setSpeed(s){S.speed=s;updateSpeedDisplay();}
+
+// ── DIVINE ACTIONS ─────────────────────────────────────────────────────
+function doDivine(action){
+  const cost=CFG.DIVINE_COSTS[action]||10;
+  if(S.divineEnergy<cost){log(`⚡ Énergie insuffisante (${Math.floor(S.divineEnergy)}/${cost}).`,'ui');return;}
+  S.divineEnergy-=cost;
+  const humans=S.humans.filter(h=>h.alive);
+  const all=[...humans,...S.animals];
+  switch(action){
+    case'weather':{
+      const ws=['clear','cloudy','rain'];S.weather=ws[Math.floor(Math.random()*ws.length)];
+      log(`🌤 Vous changez la météo : ${S.weather}.`,'discovery');break;
+    }
+    case'attract':{
+      const adam=humans.find(h=>h.name==='Adam');
+      if(adam){const herb=S.animals.find(a=>['deer','rabbit','boar'].includes(a.species)&&Math.hypot(a.x-adam.x,a.z-adam.z)<200);if(herb){herb.tx=adam.x+12;herb.tz=adam.z+12;herb.state='wander';log(`🦌 Un ${herb.name} est attiré vers vous...`,'discovery');}}
+      break;
+    }
+    case'repel':{
+      const t=humans[0];
+      if(t)S.animals.filter(a=>a.sp?.danger||a.sp?.vdanger).forEach(p=>{if(Math.hypot(p.x-t.x,p.z-t.z)<100){const dx=p.x-t.x,dz=p.z-t.z,d=Math.sqrt(dx*dx+dz*dz)||1;p.tx=p.x+dx/d*200;p.tz=p.z+dz/d*200;p.state='flee';}});
+      log('✨ Les prédateurs fuient votre présence...','discovery');break;
+    }
+    case'heal':{
+      humans.forEach(h=>{h.health=Math.min(100,h.health+40);h.hunger=Math.min(100,h.hunger+30);h.thirst=Math.min(100,h.thirst+30);h.warmth=Math.min(100,h.warmth+30);});
+      log('💚 Vos enfants sont guéris et revigorés.','discovery');break;
+    }
+    case'dream':{
+      const lucky=humans[Math.floor(Math.random()*humans.length)];
+      if(lucky){const ks=SKILL_KEYS,k=ks[Math.floor(Math.random()*ks.length)];lucky.skills[k]=Math.min(1,(lucky.skills[k]||0)+.15);log(`💫 ${lucky.name} reçoit une vision (${k} amélioré).`,'discovery');}
+      break;
+    }
+    case'food':{humans.forEach(h=>h.inv.food+=20);log('🌿 Nourriture apparaît miraculeusement.','discovery');break;}
+  }
+}
+
+// ── MAIN LOOP ─────────────────────────────────────────────────────────
+let _last=null,_at=0,_frame=0;
+
+function loop(now){
+  requestAnimationFrame(loop);
+  const real=_last?Math.min(now-_last,100):16;_last=now;_at+=real/1000;_frame++;
+
+  if(!S.paused){
+    const simDt=clockTick(real);
+    if(simDt>0){tickEcosystem(simDt);}
+    if(_frame%120===0)checkRespawn();
+    // Divine energy regen
+    S.divineEnergy=Math.min(CFG.DIVINE_MAX,S.divineEnergy+CFG.DIVINE_REGEN*(real/1000)/60);
+  }
+
+  if(_frame%3===0)syncMeshes();
+  animateMeshes(_at);
+  updateLighting();
+  updateCamera(real/1000);
+  if(_frame%4===0)updateHUD();
+  SCENE.renderer.render(SCENE.scene,SCENE.camera);
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────
+async function nextFrame(){return new Promise(r=>requestAnimationFrame(r));}
+
+async function init(){
+  const msg=s=>{const el=document.getElementById('load-msg');if(el)el.textContent=s;};
+
+  msg('Initialisation Three.js…');
+  initScene();
+
+  msg('Génération du terrain…');
+  buildTerrain();
+  await nextFrame();
+
+  msg('Construction du mesh terrain…');
+  buildTerrainMesh(SCENE.scene);
+  await nextFrame();
+
+  msg('Plantation de la végétation…');
+  buildVegetation(SCENE.scene);
+  await nextFrame();
+
+  msg('Éveil d\'Adam et Ève…');
+  initEcosystem();
+  await nextFrame();
+
+  msg('Initialisation caméra…');
+  initCamControls();
+  initRaycaster();
+  syncMeshes();
+
+  focusHuman('Adam');
+
+  window.addEventListener('resize',()=>{
+    SCENE.renderer.setSize(innerWidth,innerHeight,false);
+    SCENE.camera.aspect=innerWidth/innerHeight;
+    SCENE.camera.updateProjectionMatrix();
+  });
+
+  document.getElementById('hud-speed').addEventListener('click',()=>setSpeed(S.paused?S.speed:[.5,1,2,5,10][([.5,1,2,5,10].indexOf(S.speed)+1)%5]));
+
+  // Fade out loading
+  const ldg=document.getElementById('loading');
+  ldg.style.opacity='0';setTimeout(()=>ldg.remove(),1400);
+
+  log('🌍 Le monde est né. Adam et Ève s\'éveillent...','discovery');
+  log('💡 [1-4] Caméra  [A] Adam  [V] Ève  [Espace] Pause  [+/-] Vitesse','ui');
+
+  requestAnimationFrame(loop);
+}
+
+// ── PUBLIC API ─────────────────────────────────────────────────────────
+window.G = {
+  divine: doDivine,
+  cam: setCam,
+  focusHuman,
+  setSpeed,
+  pause: ()=>{S.paused=!S.paused;updateSpeedDisplay();},
+  state: S,
+  humans: ()=>S.humans,
+  animals: ()=>S.animals,
+};
+
+init().catch(err=>{
+  console.error('[Genesis]',err);
+  document.getElementById('load-msg').textContent='❌ '+err.message;
+});
+</script>
+</body>
+</html>

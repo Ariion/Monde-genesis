@@ -55,19 +55,22 @@ async function main() {
       const cy = adam.y + Math.sin(CAM.phi)*CAM.dist + 1;
       const cz = adam.z + Math.cos(CAM.theta)*Math.cos(CAM.phi)*CAM.dist;
 
-      // Initialiser TOUTES les valeurs de suivi sur Adam
+      // Initialiser TOUTES les valeurs de suivi directement sur Adam
       CAM.target  = adam;
-      CAM._sx     = adam.x;
+      CAM._sx     = adam.x;   // cible lissée = Adam exact
       CAM._sy     = adam.y;
       CAM._sz     = adam.z;
-      CAM.curP.x  = cx;
+      CAM.curP.x  = cx;       // position caméra = déjà calculée
       CAM.curP.y  = cy;
       CAM.curP.z  = cz;
       CAM.freeF.x = adam.x;
+      CAM.freeF.y = adam.y;
       CAM.freeF.z = adam.z;
 
+      // Forcer la position Three.js immédiatement (pas de lerp au 1er frame)
       SC.camera.position.set(cx, cy, cz);
-      SC.camera.lookAt(adam.x, adam.y+2, adam.z);
+      SC.camera.lookAt(adam.x, adam.y+1.5, adam.z);
+      SC.camera.updateMatrixWorld();
 
       // Révéler brouillard autour d'eux
       revealFog(adam.x, adam.z, CFG.FOG_REVEAL_R);

@@ -113,4 +113,4 @@ function randLand(minH=4, maxH=75) {
       return {x, y:h, z};
   }
   return {x:0, y:Math.max(4,getH(0,0)), z:0};
-  }
+}

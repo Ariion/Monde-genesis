@@ -38,8 +38,20 @@ function initEcosystem(){
   for(const[t,count]of Object.entries(CFG.ANIMALS)){
     const sp=SP[t];if(!sp)continue;
     for(let i=0;i<count;i++){
-      const pos=sp.aquatic?{x:(Math.random()-.5)*350,y:-.5,z:(Math.random()-.5)*350}:randLand(3,80);
-      const a=new Animal(t,pos.x,pos.y,pos.z);
+      let pos;
+      if(sp.aquatic){
+        pos={x:(Math.random()-.5)*320,y:-.5,z:(Math.random()-.5)*320};
+      } else if(sp.danger){
+        // Prédateurs dangereux : spawn loin du point de départ humain (>80u)
+        let tries=0;
+        do {
+          pos=randLand(5,75);
+          tries++;
+        } while(tries<50 && Math.hypot(pos.x-sp0.x, pos.z-sp0.z)<80);
+      } else {
+        pos=randLand(3,75);
+      }
+      const a=new Animal(t,pos.x,pos.y||getH(pos.x,pos.z),pos.z);
       a.age=Math.random()*a.life*.4;a.hunger=50+Math.random()*45;
       W.animals.push(a);
     }

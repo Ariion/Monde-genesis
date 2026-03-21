@@ -4,15 +4,18 @@
 function initEcosystem(){
   // Trouver un point de spawn TERRESTRE près du centre
   function findCenterLand(){
-    // Spirale depuis (0,0) → premier point avec de la terre
-    for(let r=0;r<CFG.W*.45;r+=6){
-      for(let a=0;a<Math.PI*2;a+=.25){
+    // Spirale depuis (0,0) — cherche prairie/lowland, évite le lac et les pics
+    for(let r=0;r<CFG.W*.45;r+=5){
+      for(let a=0;a<Math.PI*2;a+=.2){
         const x=Math.cos(a)*r, z=Math.sin(a)*r;
         const h=getH(x,z);
-        if(h>4&&h<75) return{x,z,h};
+        const bio=getBio(x,z);
+        if(h>6&&h<55&&bio!=='lake'&&bio!=='shore'&&bio!=='peak')
+          return{x,z,h};
       }
     }
-    return{x:0,z:0,h:5};
+    // Fallback : trouver n'importe quelle terre
+    return randLand(6,55);
   }
   const sp=findCenterLand();
   const startH=Math.max(4,sp.h);

@@ -15,8 +15,7 @@ function initScene(){
   SC.scene.fog=new THREE.FogExp2(0x8cb4d0,.0015);
 
   SC.camera=new THREE.PerspectiveCamera(58,innerWidth/innerHeight,.5,4500);
-  SC.camera.position.set(0,40,60);
-  SC.camera.lookAt(0,5,0);
+  // Position initiale neutre — loop.js positionne sur Adam après spawn
 
   SC.ambient=new THREE.AmbientLight(0x404060,.5);SC.scene.add(SC.ambient);
   SC.sun=new THREE.DirectionalLight(0xfff5d0,1.4);

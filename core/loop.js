@@ -1,7 +1,7 @@
 // GENESIS — core/loop.js
 
 // ── BOUCLE PRINCIPALE ─────────────────────────────────────────────────────
-let _last=null, _anim=0, _hudN=0;
+let _last=null, _anim=0, _hudN=0, _ready=false;
 
 function loop(now) {
   requestAnimationFrame(loop);
@@ -15,7 +15,7 @@ function loop(now) {
   }
   animMeshes(_anim);
   updateVisuals(_anim);
-  updateCam(realDt);
+  if(_ready) updateCam(realDt);
   _hudN++;
   if (_hudN%5===0) updateHUD();
   SC.renderer.render(SC.scene, SC.camera);
@@ -92,6 +92,7 @@ async function main() {
     log('✦ Tout vient d\'eux. Guidez-les en silence.','discovery');
     addChron('L\'aube du monde','🌅');
 
+    _ready = true;  // débloquer updateCam
     requestAnimationFrame(loop);
 
   } catch(err) {

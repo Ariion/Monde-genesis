@@ -7,19 +7,6 @@ const HNAMES=['Caïn','Abel','Seth','Noé','Ara','Lila','Maia','Elan','Kael','Ta
 const SK_KEYS=['chasse','cueillette','feu','abri','langage','outil'];
 const SK_EMO ={chasse:'🏹',cueillette:'🌿',feu:'🔥',abri:'🏕',langage:'🗣',outil:'🪨'};
 
-const THOUGHTS_BY_STATE={
-  explore: ['Qu\'est-ce là?','Explorer…','Par là…'],
-  forage:  ['Chercher baies…','Cueillir…','De la nourriture…'],
-  hunt:    ['Proie en vue!','Chasser…','Approcher…'],
-  drink:   ['Soif…','Eau…','Boire…'],
-  eat:     ['Enfin manger!','Ahhh…'],
-  sleep:   ['Zzz…','Fatigué…'],
-  shelter: ['Froid… abri','Trouver grotte'],
-  seek_partner:['Pas seul…','Ensemble…'],
-  idle:    ['…','Observer','Calme'],
-  flee:    ['DANGER!','Fuir!','Vite!'],
-};
-
 class Human{
   constructor(name,sex,x,y,z,gen=1,pA=null,pB=null){
     this.id=++_eid; this.name=name; this.sex=sex;

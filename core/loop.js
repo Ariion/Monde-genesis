@@ -1,133 +1,117 @@
 // GENESIS — core/loop.js
 
-// ── BOUCLE PRINCIPALE ─────────────────────────────────────────────────────
 let _last=null, _anim=0, _hudN=0, _ready=false;
 
-function loop(now) {
+function loop(now){
   requestAnimationFrame(loop);
-  const realDt = _last ? Math.min(now-_last, 100) : 16;
-  _last = now;
-  _anim += realDt/1000;
+  const realDt=_last?Math.min(now-_last,100):16;
+  _last=now; _anim+=realDt/1000;
 
-  if (!W.paused) {
-    const simDt = tickClock(realDt);
-    if (simDt>0) { tickEco(simDt, realDt); tickEvents(now); }
+  if(!W.paused){
+    const simDt=tickClock(realDt);
+    if(simDt>0){tickEco(simDt,realDt);tickEvents(now);}
   }
   animMeshes(_anim);
   updateVisuals(_anim);
   if(_ready) updateCam(realDt);
-  _hudN++;
-  if (_hudN%5===0) updateHUD();
-  SC.renderer.render(SC.scene, SC.camera);
+  _hudN++; if(_hudN%5===0) updateHUD();
+  SC.renderer.render(SC.scene,SC.camera);
 }
 
-// ── INIT ──────────────────────────────────────────────────────────────────
-function sL(p,m) {
+function sL(p,m){
   document.getElementById('lfill').style.width=p+'%';
   document.getElementById('lmsg').textContent=m;
 }
-async function nf() { return new Promise(r=>requestAnimationFrame(r)); }
+async function nf(){return new Promise(r=>requestAnimationFrame(r));}
 
-async function main() {
-  try {
-    sL(5,  'Initialisation Three.js…');
-    if (!window.THREE) throw new Error('Three.js non chargé!');
+async function main(){
+  try{
+    sL(5,'Three.js…');    if(!window.THREE)throw new Error('Three.js manquant'); await nf();
+    sL(12,'Scène…');      initScene();        await nf();
+    sL(25,'Terrain…');    buildTerrain(SC.scene); await nf();
+    sL(40,'Brouillard…'); initFog(SC.scene);  await nf();
+    sL(52,'Végétation…'); buildVeg(SC.scene); await nf();
+    sL(62,'Grottes…');    buildCaves(SC.scene); await nf();
+    sL(72,'Spawn…');      initEcosystem();
+
+    W.humans.forEach(h=>{buildHumanMesh(h);SC.scene.add(h.mesh);});
+    W.animals.forEach(a=>{buildAnimalMesh(a);SC.scene.add(a.mesh);});
     await nf();
 
-    sL(12, 'Construction de la scène…');  initScene();      await nf();
-    sL(25, 'Génération du terrain…');     buildTerrain(SC.scene); await nf();
-    sL(40, 'Brouillard de guerre…');      initFog(SC.scene);await nf();
-    sL(52, 'Végétation…');               buildVeg(SC.scene); await nf();
-    sL(62, 'Grottes…');                  buildCaves(SC.scene); await nf();
-    sL(72, 'Adam et Ève s\'éveillent…'); initEcosystem();
+    sL(85,'Contrôles…'); initCam(); initRaycaster();
 
-    W.humans.forEach(h => { buildHumanMesh(h); SC.scene.add(h.mesh); });
-    W.animals.forEach(a => { buildAnimalMesh(a); SC.scene.add(a.mesh); });
-    await nf();
+    // ── CAMÉRA : positionnement direct sur Adam, ZÉRO lerp ───────
+    const adam=W.humans.find(h=>h.name==='Adam');
+    if(adam){
+      // Forcer _sx/_sy/_sz = Adam (pas null, pas 0,0,0)
+      CAM._sx=adam.x; CAM._sy=adam.y; CAM._sz=adam.z;
 
-    sL(85, 'Contrôles…'); initCam(); initRaycaster();
+      // Calculer position caméra
+      const cx=adam.x+Math.sin(CAM.theta)*Math.cos(CAM.phi)*CAM.dist;
+      const cy=adam.y+Math.sin(CAM.phi)*CAM.dist+1;
+      const cz=adam.z+Math.cos(CAM.theta)*Math.cos(CAM.phi)*CAM.dist;
 
-    // ── CENTRER CAMÉRA SUR ADAM (position réelle, SANS lerp) ─────────────
-    const adam = W.humans.find(h=>h.name==='Adam');
-    if (adam) {
-      // Forcer la caméra DIRECTEMENT sur Adam — pas de lerp, pas de glissement
-      const cx = adam.x + Math.sin(CAM.theta)*Math.cos(CAM.phi)*CAM.dist;
-      const cy = adam.y + Math.sin(CAM.phi)*CAM.dist + 1;
-      const cz = adam.z + Math.cos(CAM.theta)*Math.cos(CAM.phi)*CAM.dist;
+      // Écrire DIRECTEMENT dans curP et Three.js — aucun lerp
+      CAM.curP.x=cx; CAM.curP.y=cy; CAM.curP.z=cz;
+      CAM.target=adam;
+      CAM.freeF.x=adam.x; CAM.freeF.y=adam.y; CAM.freeF.z=adam.z;
+      SC.camera.position.set(cx,cy,cz);
+      SC.camera.lookAt(adam.x,adam.y+1.5,adam.z);
+      SC.camera.updateMatrixWorld(true);
 
-      // Initialiser TOUTES les valeurs de suivi directement sur Adam
-      CAM.target  = adam;
-      CAM._sx     = adam.x;   // cible lissée = Adam exact
-      CAM._sy     = adam.y;
-      CAM._sz     = adam.z;
-      CAM.curP.x  = cx;       // position caméra = déjà calculée
-      CAM.curP.y  = cy;
-      CAM.curP.z  = cz;
-      CAM.freeF.x = adam.x;
-      CAM.freeF.y = adam.y;
-      CAM.freeF.z = adam.z;
-
-      // Forcer la position Three.js immédiatement (pas de lerp au 1er frame)
-      SC.camera.position.set(cx, cy, cz);
-      SC.camera.lookAt(adam.x, adam.y+1.5, adam.z);
-      SC.camera.updateMatrixWorld();
-
-      // Révéler brouillard autour d'eux
-      revealFog(adam.x, adam.z, CFG.FOG_REVEAL_R);
-      const eve = W.humans.find(h=>h.name==='Ève');
-      if (eve) revealFog(eve.x, eve.z, CFG.FOG_REVEAL_R*.7);
+      // Brouillard
+      revealFog(adam.x,adam.z,CFG.FOG_REVEAL_R);
+      const eve=W.humans.find(h=>h.name==='Ève');
+      if(eve) revealFog(eve.x,eve.z,CFG.FOG_REVEAL_R*.7);
     }
     await nf();
 
-    sL(100, 'Le monde s\'éveille…'); await nf();
-
-    // Masquer l'écran de chargement
-    const ld = document.getElementById('loading');
-    ld.style.transition = 'opacity 1.5s';
-    ld.style.opacity = '0';
-    setTimeout(()=>{ ld.style.display='none'; }, 1600);
+    sL(100,'Éveil…'); await nf();
+    const ld=document.getElementById('loading');
+    ld.style.transition='opacity 1.5s'; ld.style.opacity='0';
+    setTimeout(()=>ld.style.display='none',1600);
 
     log('✦ In principio… Adam et Ève s\'éveillent.','discovery');
     log('✦ Ils ont faim. Ils ont soif. Le monde est hostile.','danger');
     log('✦ Tout vient d\'eux. Guidez-les en silence.','discovery');
     addChron('L\'aube du monde','🌅');
 
-    _ready = true;  // débloquer updateCam
+    _ready=true;  // débloquer updateCam maintenant seulement
     requestAnimationFrame(loop);
 
-  } catch(err) {
-    console.error('[Genesis]', err);
-    document.getElementById('lmsg').textContent = '❌ ' + err.message;
+  }catch(err){
+    console.error('[Genesis]',err);
+    document.getElementById('lmsg').textContent='❌ '+err.message;
   }
 }
 
-// ── API PUBLIQUE ──────────────────────────────────────────────────────────
-window.G = {
-  d: divine,
-  cam(mode) {
-    CAM.mode = mode;
+window.G={
+  d:divine,
+  cam(mode){
+    CAM.mode=mode;
     document.querySelectorAll('.cb').forEach(b=>b.classList.remove('on'));
-    const btn = document.getElementById('c-'+mode);
-    if (btn) btn.classList.add('on');
+    const btn=document.getElementById('c-'+mode);if(btn)btn.classList.add('on');
   },
-  focus(name) {
-    const h = W.humans.find(h=>h.name===name&&h.alive);
-    if (!h) return;
-    CAM.target=h; CAM.theta=0; CAM.phi=.65;
-    // Reset smooth target directement sur le perso
+  focus(name){
+    const h=W.humans.find(h=>h.name===name&&h.alive);
+    if(!h)return;
+    // Reset smooth target directement sur le perso — pas de lerp
     CAM._sx=h.x; CAM._sy=h.y; CAM._sz=h.z;
-    G.cam('follow');
+    CAM.curP.x=h.x+Math.sin(CAM.theta)*Math.cos(CAM.phi)*CAM.dist;
+    CAM.curP.y=h.y+Math.sin(CAM.phi)*CAM.dist+1;
+    CAM.curP.z=h.z+Math.cos(CAM.theta)*Math.cos(CAM.phi)*CAM.dist;
+    SC.camera.position.set(CAM.curP.x,CAM.curP.y,CAM.curP.z);
+    CAM.target=h; G.cam('follow');
   },
-  cycleSpeed() {
+  cycleSpeed(){
     const sp=[1,2,5,10,20];
-    W.speed = sp[(sp.indexOf(W.speed)+1)%sp.length];
-    _spdHUD();
+    W.speed=sp[(sp.indexOf(W.speed)+1)%sp.length]; _spdHUD();
   },
-  closeInsp() {
+  closeInsp(){
     document.getElementById('insp').style.display='none';
-    if (CAM.mode==='insp') G.cam('follow');
+    if(CAM.mode==='insp')G.cam('follow');
   },
-  state: W,
+  state:W,
 };
 
 main();

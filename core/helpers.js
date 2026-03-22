@@ -7,4 +7,3 @@ function near(e,t){return Math.hypot(e.x-e.tx,e.z-e.tz)<t;}
 function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
 
 // ── BOUCLE PRINCIPALE ────────────────────────────────────────────────
-let _last=null,_anim=0,_hudN=0;

@@ -1,8 +1,29 @@
 // GENESIS — world/caves.js — Grottes & abris
 
-// ── GROTTES ──────────────────────────────────────────────────────────
+// ── PLACEMENT DES GROTTES ─────────────────────────────────────────────
+function _placeCaves(){
+  TR.caves=[];
+  const maxTries=300, target=12;
+  let tries=0;
+  while(TR.caves.length<target && tries<maxTries){
+    tries++;
+    const x=(Math.random()-.5)*CFG.W*.82;
+    const z=(Math.random()-.5)*CFG.W*.82;
+    const h=getH(x,z), bio=getBio(x,z);
+    // Grottes dans les collines et montagnes
+    if(h<25||h>85) continue;
+    if(bio!=='hills'&&bio!=='mountain'&&bio!=='steppe') continue;
+    // Pas trop proches entre elles
+    if(TR.caves.some(cv=>Math.hypot(cv.x-x,cv.z-z)<50)) continue;
+    TR.caves.push({x,y:h,z,occupants:[],mesh:null});
+  }
+  console.log('[Caves]',TR.caves.length,'grottes placées');
+}
+
+// ── MESHES GROTTES ────────────────────────────────────────────────────
 function buildCaves(sc) {
-  if(!TR.caves?.length){TR.caves=[];_placeCaves(CFG.S+1,CFG.W);}
+  _placeCaves();
+  if(!TR.caves.length) return;
   if(!TR.caves.length)return;
   TR.caves.forEach(cave=>{
     const g=new THREE.Group();
@@ -23,4 +44,3 @@ function buildCaves(sc) {
 }
 
 // ── SCÈNE THREE.JS ────────────────────────────────────────────────────
-const SC={scene:null,camera:null,renderer:null,sun:null,ambient:null,sky:null};

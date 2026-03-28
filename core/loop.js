@@ -60,9 +60,7 @@ async function main(){
       SC.camera.updateMatrixWorld(true);
 
       // Brouillard
-      revealFog(adam.x,adam.z,CFG.FOG_REVEAL_R);
       const eve=W.humans.find(h=>h.name==='Ève');
-      if(eve) revealFog(eve.x,eve.z,CFG.FOG_REVEAL_R*.7);
     }
     await nf();
 

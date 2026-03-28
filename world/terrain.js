@@ -52,9 +52,9 @@ function buildTerrain(sc) {
     else if(ld<1.05)  bio='shore';
     else if(h<7)      bio='lowland';
     else if(h<22)     bio=(fbm(nx+8,nz+8,3)>0)?'forest':'prairie';
-    else if(h<40)     bio='steppe';
-    else if(h<65)     bio='hills';
-    else if(h<88)     bio='mountain';
+    else if(h<30)     bio='steppe';
+    else if(h<50)     bio='hills';
+    else if(h<68)     bio='mountain';
     else              bio='peak';
     TR.biomes[i]=bio;
 

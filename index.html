@@ -22,6 +22,7 @@
   <div id="h-date">Jour 1 · An 1 · Printemps</div>
   <div id="h-right">
     <span id="h-pop">👥 2</span>
+    <span id="h-temp">12°C</span>
     <span id="h-spd" onclick="G.cycleSpeed()">▶ ×1</span>
   </div>
 </div>
@@ -37,6 +38,7 @@
   <div class="emo" id="a-emo">—</div>
   <div class="skl" id="a-skl">—</div>
   <div class="tht" id="a-tht">…</div>
+  <div class="emo" id="a-status" style="font-size:9px"></div>
 </div>
 
 <div class="ipanel" id="pe">
@@ -49,6 +51,7 @@
   <div class="emo" id="e-emo">—</div>
   <div class="skl" id="e-skl">—</div>
   <div class="tht" id="e-tht">…</div>
+  <div class="emo" id="e-status" style="font-size:9px"></div>
 </div>
 
 <div id="world">
@@ -59,7 +62,11 @@
   Décès : <span class="v" id="s-dea">0</span><br>
   Clans : <span class="v" id="s-cla">0</span><br>
   Animaux : <span class="v" id="s-ani">0</span><br>
-  Temp. : <span class="v" id="s-tmp">15°C</span>
+  Temp. : <span class="v" id="s-tmp">12°C</span><br>
+  Feu : <span class="v" id="s-fire">🔥</span><br>
+  Nourr. stock : <span class="v" id="s-food">30</span><br>
+  Eau stock : <span class="v" id="s-water">40</span><br>
+  Abri : <span class="v" id="s-shelter">Aucun</span>
 </div>
 
 <div id="chron">
@@ -67,7 +74,7 @@
   <div id="chron-list"></div>
 </div>
 
-<div id="divine">
+<div id="divine" style="bottom:auto;top:54px;right:14px;left:auto;transform:none;min-width:170px;">
   <h4>✦ INFLUENCE SILENCIEUSE</h4>
   <div class="ebar">
     <div class="ebg"><div id="efill" style="width:60%"></div></div>
@@ -167,6 +174,37 @@
 <!-- ── BOUCLE & IA ───────────────────────────── -->
 <script src="core/loop.js"></script>
 <script src="ai/self_improve.js"></script>
+<script src="ai/oracle.js"></script>
+
+
+<!-- ORACLE — commandes IA en langage naturel -->
+<div id="oracle-panel" style="
+  position:fixed;bottom:14px;left:50%;transform:translateX(-50%);
+  background:rgba(5,3,10,.92);border:1px solid rgba(180,140,60,.4);
+  border-radius:8px;padding:10px 14px;min-width:420px;max-width:560px;
+  z-index:200;font-family:Georgia,serif;
+">
+  <div style="font-size:9px;letter-spacing:3px;color:rgba(180,140,60,.5);margin-bottom:6px;text-align:center">
+    ✦ ORACLE — PARLE À TON PEUPLE ✦
+  </div>
+  <div style="display:flex;gap:8px;">
+    <input id="oracle-input" type="text"
+      placeholder="Ex: Cherchez une grotte pour l'hiver…"
+      style="flex:1;background:rgba(255,255,255,.06);border:1px solid rgba(180,140,60,.25);
+             border-radius:4px;padding:7px 10px;color:#e8d898;font-size:11px;font-family:Georgia,serif;
+             outline:none;"
+      onkeydown="if(event.key==='Enter')ORACLE.interpret(this.value)">
+    <button onclick="ORACLE.interpret(document.getElementById('oracle-input').value)"
+      style="padding:7px 14px;background:rgba(180,140,60,.2);border:1px solid rgba(180,140,60,.4);
+             border-radius:4px;color:#c8a840;cursor:pointer;font-size:11px;">
+      ↵
+    </button>
+  </div>
+  <div id="oracle-status" style="font-size:10px;color:rgba(200,180,100,.5);margin-top:5px;font-style:italic;">
+    Dis-moi ce que le groupe doit faire…
+  </div>
+  <div id="oracle-log" style="margin-top:4px;"></div>
+</div>
 
 </body>
 </html>

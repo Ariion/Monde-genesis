@@ -134,7 +134,26 @@
 </div>
 
 <!-- ── MOTEUR 3D ─────────────────────────────── -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// Charger Three.js avec fallback multi-CDN
+(function(){
+  var urls = [
+    'https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js',
+    'https://unpkg.com/three@0.128.0/build/three.min.js',
+  ];
+  var idx = 0;
+  function tryLoad(){
+    if(idx>=urls.length){ document.getElementById('lmsg').textContent='❌ Three.js inaccessible. Désactivez le Tracking Prevention dans Edge.'; return; }
+    var s=document.createElement('script');
+    s.src=urls[idx++];
+    s.onload=function(){ window._threeLoaded=true; };
+    s.onerror=function(){ tryLoad(); };
+    document.head.appendChild(s);
+  }
+  tryLoad();
+})();
+</script>
 
 <!-- ── CORE ──────────────────────────────────── -->
 <script src="core/config.js"></script>

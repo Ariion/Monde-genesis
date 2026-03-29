@@ -26,7 +26,14 @@ async function nf(){return new Promise(r=>requestAnimationFrame(r));}
 
 async function main(){
   try{
-    sL(5,'Three.js…');    if(!window.THREE)throw new Error('Three.js manquant'); await nf();
+    sL(5,'Chargement Three.js…');
+    // Attendre que Three.js soit disponible (chargement asynchrone multi-CDN)
+    for(let i=0;i<50;i++){
+      if(window.THREE) break;
+      await new Promise(r=>setTimeout(r,100));
+    }
+    if(!window.THREE) throw new Error('Three.js inaccessible. Désactivez le Tracking Prevention dans les paramètres Edge (edge://settings/privacy).');
+    await nf();
     sL(12,'Scène…');      initScene();        await nf();
     sL(25,'Terrain…');    buildTerrain(SC.scene); await nf();
     sL(40,'Brouillard…'); initFog(SC.scene);  await nf();
